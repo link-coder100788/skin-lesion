@@ -62,6 +62,13 @@
     "winner": "fastvit_t12.apple_dist_in1k"
   },
   "final_run": {
-    "config": "fastvit_t12.apple_dist_in1k, 384px, HAM10000 train + 15,316 ISIC 2019 images (SCC->akiec), 2 head + 30 full epochs, label smoothing 0.1, drop path 0.2"
+    "config": "fastvit_t12.apple_dist_in1k, 384px, HAM10000 train + 15,316 ISIC 2019 images (SCC->akiec), 2 head + 30 full epochs, label smoothing 0.1, drop path 0.2",
+    "val_bacc": 0.832,
+    "val_urgent_auroc": 0.948,
+    "val_spec_at_90_sens": 0.888,
+    "best_epoch": 27,
+    "train_images": 22325,
+    "training_time_h": 2.9,
+    "device": "Kaggle GPU"
   }
 }
