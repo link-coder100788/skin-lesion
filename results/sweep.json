@@ -22,5 +22,46 @@
       "note": "disqualified: fp16 inference overflow produced inf/NaN logits; fixed in src/train.py for future runs"
     }
   },
-  "winner": "b0_reg"
+  "winner": "b0_reg",
+  "architecture_sweep": {
+    "recipe": "224px, 2 head + 20 full epochs, AdamW 1e-4/3e-4 one-cycle, weighted CE 1/sqrt(freq), label smoothing 0.1, drop path 0.2",
+    "selection_rule": "best validation balanced accuracy; urgent AUROC and specificity@90% sensitivity also on validation",
+    "results": {
+      "efficientnet_b0 (b0_reg)": {
+        "val_bacc": 0.701,
+        "val_urgent_auroc": 0.894,
+        "val_spec_at_90_sens": 0.697
+      },
+      "fastvit_t12.apple_dist_in1k": {
+        "val_bacc": 0.786,
+        "val_urgent_auroc": 0.931,
+        "val_spec_at_90_sens": 0.785
+      },
+      "fastvit_s12.apple_dist_in1k": {
+        "val_bacc": 0.746,
+        "val_urgent_auroc": 0.925,
+        "val_spec_at_90_sens": 0.78
+      },
+      "tf_efficientnetv2_b0.in1k": {
+        "val_bacc": 0.733,
+        "val_urgent_auroc": 0.904,
+        "val_spec_at_90_sens": 0.669
+      },
+      "convnextv2_femto.fcmae_ft_in1k": {
+        "val_bacc": 0.76,
+        "val_urgent_auroc": 0.925,
+        "val_spec_at_90_sens": 0.78
+      },
+      "mobilenetv4_hybrid_medium.e200_r256_in12k_ft_in1k": {
+        "val_bacc": 0.353,
+        "val_urgent_auroc": 0.837,
+        "val_spec_at_90_sens": 0.626,
+        "note": "did not converge with this shared recipe (head-phase loss ~18); not a verdict on the architecture"
+      }
+    },
+    "winner": "fastvit_t12.apple_dist_in1k"
+  },
+  "final_run": {
+    "config": "fastvit_t12.apple_dist_in1k, 384px, HAM10000 train + 15,316 ISIC 2019 images (SCC->akiec), 2 head + 30 full epochs, label smoothing 0.1, drop path 0.2"
+  }
 }

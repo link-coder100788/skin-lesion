@@ -133,9 +133,12 @@ def main():
 
     t0 = time.time()
     size = args.img_size
-    tr_imgs = load_images(train_df["path"], round(size * 8 / 7))  # crop source: 256 for 224
-    ev_imgs = {s: load_images(parts[s]["path"], size) for s in ("train", "val", "test")}
-    print(f"loaded images in {time.time() - t0:.0f}s", flush=True)
+    # crop source: 256 for 224, capped at +32 px for big inputs to keep RAM in check
+    tr_imgs = load_images(train_df["path"], min(round(size * 8 / 7), size + 32))
+    # HAM "train" at eval size is only needed for the final embedding dump; it is loaded after
+    # training, once the augmented training cache has been freed.
+    ev_imgs = {s: load_images(parts[s]["path"], size) for s in ("val", "test")}
+    print(f"loaded images in {time.time() - t0:.0f}s ({tr_imgs.nbytes / 1e9:.1f} GB train cache)", flush=True)
 
     kw = dict(batch_size=args.batch_size, num_workers=args.workers, pin_memory=device.type == "cuda",
               persistent_workers=args.workers > 0)
@@ -186,6 +189,15 @@ def main():
     for ep in range(args.epochs):
         evaluate(args.head_epochs + ep, "full",
                  run_epoch(model, train_loader, criterion, opt, sched, scaler, device))
+
+    # Free the training cache, then add HAM train at eval size for the embedding dump.
+    import gc
+
+    del train_loader, tr_imgs
+    gc.collect()
+    ev_imgs["train"] = load_images(parts["train"]["path"], size)
+    eval_loaders["train"] = torch.utils.data.DataLoader(
+        CachedImages(ev_imgs["train"], parts["train"]["y"].to_numpy()), shuffle=False, **kw)
 
     # Reload the best checkpoint and dump logits + embeddings for every split.
     model.load_state_dict(torch.load(out / "cnn.pt", map_location=device))

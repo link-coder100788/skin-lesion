@@ -18,6 +18,13 @@ ROOT = Path(__file__).resolve().parent.parent
 FIG = ROOT / "figures"
 R = {n: json.load(open(ROOT / f"results/{n}.json")) for n in ("eda", "calibration_fusion", "explain", "eval")}
 CFG = json.load(open(ROOT / "models/config.json"))
+TRAIN = json.load(open(ROOT / "models/train_log.json"))["args"]
+NICE = {"efficientnet_b0": "EfficientNet-B0", "fastvit_t12": "FastViT-T12", "fastvit_s12": "FastViT-S12",
+        "convnextv2_femto": "ConvNeXt V2-Femto", "tf_efficientnetv2_b0": "EfficientNetV2-B0",
+        "mobilenetv4_hybrid_medium": "MobileNetV4-Hybrid-M"}
+MODEL = NICE.get(TRAIN.get("backbone", "efficientnet_b0").split(".")[0], TRAIN.get("backbone"))
+SIZE = int(TRAIN.get("img_size", 224))
+DATA = "HAM10000\n+ ISIC 2019" if TRAIN.get("isic19") else "HAM10000"
 
 INK = RGBColor(0x1F, 0x23, 0x28)
 MUTED = RGBColor(0x5F, 0x6B, 0x76)
@@ -167,7 +174,7 @@ notes(s, "If Wi-Fi fails, the app runs fully offline on a laptop.")
 
 # 5 · How it works --------------------------------------------------------------------------
 s = new_slide("Two stages, two layers of explanation", "How it works")
-steps = [("Image", Inches(0.6)), ("EfficientNet-B0\nfine-tuned on\nHAM10000", Inches(2.55)),
+steps = [("Image", Inches(0.6)), (f"{MODEL} @ {SIZE}px\nfine-tuned on\n{DATA}", Inches(2.55)),
          ("7 calibrated\nprobabilities\n(temperature T)", Inches(4.9)),
          ("XGBoost fusion\n+ age, sex, site", Inches(7.25)), ("Triage +\nOOD guard", Inches(9.6))]
 for k, (label, x) in enumerate(steps):
@@ -214,7 +221,7 @@ for c in range(1, 5):
 bullets(s, Inches(0.6), Inches(4.75), Inches(7.4), Inches(2.3), [
     f"Sensitivity {ci(cnn['sensitivity_urgent'])} at specificity {ci(cnn['specificity_urgent'])}",
     f"Balanced accuracy {cnn['balanced_accuracy'][0]:.2f}; published HAM10000 models reach ~0.75–0.88. "
-    "A weekend EfficientNet-B0 sits just below that range.",
+    f"Our {MODEL} sits {'inside' if cnn['balanced_accuracy'][0] >= 0.75 else 'just below'} that range.",
     f"Calibration error (ECE) {R['eval']['ece_test_before']:.3f} → {R['eval']['ece_test_after']:.3f} after temperature scaling",
     "Metadata fusion did not help: a null result, reported as one",
 ], 14)
@@ -226,7 +233,7 @@ notes(s, "95% CIs: 1,000 bootstrap resamples over test images. Test set was scor
 # 7 · What SHAP taught us -------------------------------------------------------------------
 hunt = {r["group"]: r for r in ex["shortcut_by_group"]}
 byc = {r["dx"]: r for r in ex["shortcut_by_class"]}
-CORNER_AREA = 4 * 22 * 22 / 224 ** 2  # the four 10% corner patches used in notebook 05
+CORNER_AREA = 4 * int(0.1 * SIZE) ** 2 / SIZE ** 2  # the four 10% corner patches used in notebook 05
 s = new_slide("We checked the explanations: faithful, but fragile", "What SHAP taught us")
 del_auc = ex["deletion_auc"]
 image(s, FIG / "shortcut_dark_corners.png", Inches(0.6), Inches(1.75), w=Inches(7.6))

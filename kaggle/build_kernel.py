@@ -35,6 +35,14 @@ SWEEPS = {
         "fastvit_s12": f"--backbone fastvit_s12.apple_dist_in1k {REG}",
         "effv2_b0": f"--backbone tf_efficientnetv2_b0.in1k {REG}",
     },
+    "final": {  # winner of the architecture sweep + ISIC 2019 + 384 px, ~3.4 h on a T4/P100
+        "fastvit_t12_384": f"--backbone fastvit_t12.apple_dist_in1k --img-size 384 "
+                           f"--head-epochs 2 --epochs 30 --label-smoothing 0.1 --drop-path 0.2",
+    },
+    "final-smoke": {  # timing/memory check for the final run (subsampled)
+        "fastvit_t12_384": f"--backbone fastvit_t12.apple_dist_in1k --img-size 384 --limit 1500 "
+                           f"--head-epochs 1 --epochs 1 --label-smoothing 0.1 --drop-path 0.2",
+    },
     "arch-b": {
         "convnextv2_femto": f"--backbone convnextv2_femto.fcmae_ft_in1k {REG}",
         "mnv4_hybrid_m": f"--backbone mobilenetv4_hybrid_medium.e200_r256_in12k_ft_in1k {REG}",

@@ -16,14 +16,20 @@
 # kaggle kernels output <user>/skin-lesion-triage-train -p models
 # ```
 #
-# Recipe (`src/train.py`): EfficientNet-B0 (timm, ImageNet weights), 224×224, flips +
-# 90° rotations + `RandomResizedCrop(0.7–1.0)` + light colour jitter, weighted cross-entropy
-# with `w = 1/sqrt(class_freq)`, 2 epochs head-only (lr 1e-3), then 12 epochs full fine-tune
-# with AdamW (1e-4 backbone / 3e-4 head) on a one-cycle cosine schedule, mixed precision.
-# The checkpoint with the best **validation balanced accuracy** is kept.
+# The model was chosen by validation-only sweeps (see `results/sweep.json`): EfficientNet-B0
+# with label smoothing / stochastic depth, then FastViT-T12/S12, ConvNeXt V2-Femto,
+# EfficientNetV2-B0 and MobileNetV4-Hybrid-M with the same recipe. The winner (FastViT-T12) was
+# retrained at higher resolution with 15,316 extra ISIC 2019 training images (HAM10000
+# duplicates removed, SCC merged into akiec). Validation and test stay the HAM10000 splits.
 #
-# **Why weighted CE over a weighted sampler?** The sampler would show the 115 `df` images
-# ~60× per epoch and overfit them; `1/sqrt(freq)` weights rebalance the loss more gently.
+# Shared recipe (`src/train.py`): flips + 90° rotations + `RandomResizedCrop(0.7–1.0)` + light
+# colour jitter, weighted cross-entropy (`w = 1/sqrt(class_freq)`), head-only epochs then a full
+# fine-tune with AdamW (1e-4 backbone / 3e-4 head) on a one-cycle cosine schedule, mixed
+# precision. The checkpoint with the best **validation balanced accuracy** is kept. The exact
+# arguments of the deployed run are printed below.
+#
+# **Why weighted CE over a weighted sampler?** The sampler would show the rare `df` images
+# dozens of times per epoch and overfit them; `1/sqrt(freq)` weights rebalance more gently.
 
 # %%
 import json
@@ -33,6 +39,8 @@ import pandas as pd
 log = json.load(open("../models/train_log.json"))
 h = pd.DataFrame(log["history"])
 print("device:", log["device"], "| torch", log["torch"], "| best val balanced accuracy:", round(log["best_val_bacc"], 4))
+print({k: v for k, v in log["args"].items() if k not in ("ham", "split", "fitz", "out", "isic19")},
+      "| extra ISIC 2019 data:", bool(log["args"].get("isic19")))
 h
 
 # %%
