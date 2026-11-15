@@ -1,6 +1,8 @@
 """Dataset loading, lesion-grouped split, and image transforms for HAM10000."""
 from __future__ import annotations
 
+import json
+import os
 from pathlib import Path
 
 import numpy as np
@@ -14,8 +16,26 @@ URGENT = ["akiec", "bcc", "mel"]
 URGENT_IDX = [CLASSES.index(c) for c in URGENT]
 IMAGENET_MEAN = torch.tensor([0.485, 0.456, 0.406]).view(1, 3, 1, 1)
 IMAGENET_STD = torch.tensor([0.229, 0.224, 0.225]).view(1, 3, 1, 1)
-IMG_SIZE = 224
 SEED = 42
+
+
+def _default_img_size() -> int:
+    """Input size of the deployed model: $IMG_SIZE, else models/train_log.json, else 224."""
+    if os.environ.get("IMG_SIZE"):
+        return int(os.environ["IMG_SIZE"])
+    log = Path(__file__).resolve().parent.parent / "models/train_log.json"
+    try:
+        return int(json.load(open(log))["args"].get("img_size", 224))
+    except (OSError, ValueError, KeyError):
+        return 224
+
+
+IMG_SIZE = _default_img_size()
+
+# ISIC 2019 diagnoses -> HAM10000 classes. Invasive SCC joins akiec (which already holds SCC
+# in situ / Bowen's); both are "urgent", so the triage definition is unchanged.
+ISIC19_TO_HAM = {"NV": "nv", "MEL": "mel", "BCC": "bcc", "BKL": "bkl", "AK": "akiec",
+                 "SCC": "akiec", "VASC": "vasc", "DF": "df"}
 
 # Fitzpatrick17k labels that correspond to a HAM10000 class (invasive SCC is excluded:
 # HAM10000's akiec only covers actinic keratosis / intraepithelial carcinoma).
@@ -59,8 +79,9 @@ def lesion_split(df: pd.DataFrame, seed: int = SEED) -> pd.Series:
     return split
 
 
-def load_image(path: str | Path, size: int = IMG_SIZE) -> np.ndarray:
-    """Load an RGB image, resized (full frame) to size x size, as uint8 HWC."""
+def load_image(path: str | Path, size: int | None = None) -> np.ndarray:
+    """Load an RGB image, resized (full frame) to size x size (default IMG_SIZE), as uint8 HWC."""
+    size = size or IMG_SIZE
     img = Image.open(path).convert("RGB").resize((size, size), Image.BILINEAR)
     return np.asarray(img)
 
@@ -91,13 +112,13 @@ class CachedImages(torch.utils.data.Dataset):
         return x, self.labels[i]
 
 
-def train_transform():
+def train_transform(size: int | None = None):
     from torchvision.transforms import v2
 
     # Lesions have no "up": flips + 90-degree rotations. Colour jitter stays light
     # because colour carries diagnostic information.
     return v2.Compose([
-        v2.RandomResizedCrop(IMG_SIZE, scale=(0.7, 1.0), antialias=True),
+        v2.RandomResizedCrop(size or IMG_SIZE, scale=(0.7, 1.0), antialias=True),
         v2.RandomHorizontalFlip(),
         v2.RandomVerticalFlip(),
         v2.RandomChoice([v2.RandomRotation((a, a)) for a in (0, 90, 180, 270)]),
@@ -105,7 +126,8 @@ def train_transform():
     ])
 
 
-def eval_transform():
+def eval_transform(size: int | None = None):
     from torchvision.transforms import v2
 
-    return v2.Resize((IMG_SIZE, IMG_SIZE), antialias=True)
+    size = size or IMG_SIZE
+    return v2.Resize((size, size), antialias=True)

@@ -18,7 +18,7 @@ import torch
 import torch.nn as nn
 from sklearn.metrics import balanced_accuracy_score
 
-from .data import (CLASSES, FITZ_TO_HAM, SEED, CachedImages, eval_transform, load_image,
+from .data import (CLASSES, FITZ_TO_HAM, ISIC19_TO_HAM, SEED, CachedImages, load_image,
                    load_metadata, train_transform)
 from .model import create_model, get_device, logits_and_embeddings
 
@@ -37,6 +37,21 @@ def load_images(paths, size: int) -> np.ndarray:
         return np.stack(list(ex.map(lambda p: load_image(p, size), paths)))
 
 
+def load_isic19(root, ham_ids: set) -> pd.DataFrame:
+    """ISIC 2019 training images that are NOT HAM10000 images, mapped to HAM10000 classes."""
+    root = Path(root)
+    meta = next(p for p in root.rglob("train.csv") if "diagnosis" in open(p).readline())
+    d = pd.read_csv(meta)
+    d = d[~d["image_name"].isin(ham_ids) & d["diagnosis"].isin(ISIC19_TO_HAM)]
+    files = {p.stem: p for p in root.rglob("*.jpg")}
+    d = d[d["image_name"].isin(files)]
+    out = pd.DataFrame({"image_id": d["image_name"].to_numpy(),
+                        "path": [str(files[i]) for i in d["image_name"]],
+                        "dx": d["diagnosis"].map(ISIC19_TO_HAM).to_numpy()})
+    out["y"] = out["dx"].map(CLASSES.index)
+    return out
+
+
 def class_weights(y: np.ndarray) -> torch.Tensor:
     # weight = 1 / sqrt(freq): softer than inverse frequency, so the 115 df images do not
     # dominate the loss, but nv no longer swamps the minority classes.
@@ -50,8 +65,8 @@ def predict(model, loader, device):
     model.eval()
     logits, embs = [], []
     for x, _ in loader:
-        with torch.autocast(device.type, enabled=device.type == "cuda"):
-            lg, em = logits_and_embeddings(model, x.to(device, non_blocking=True))
+        # fp32 on purpose: under fp16 autocast EfficientNet-B3's activations overflowed to inf/NaN
+        lg, em = logits_and_embeddings(model, x.to(device, non_blocking=True))
         logits.append(lg.float().cpu())
         embs.append(em.float().cpu())
     return torch.cat(logits).numpy(), torch.cat(embs).numpy()
@@ -89,6 +104,9 @@ def main():
     ap.add_argument("--backbone", default="efficientnet_b0")
     ap.add_argument("--label-smoothing", type=float, default=0.0)
     ap.add_argument("--drop-path", type=float, default=0.0, help="stochastic depth rate")
+    ap.add_argument("--img-size", type=int, default=224)
+    ap.add_argument("--isic19", default=None,
+                    help="ISIC 2019 dir (train.csv + jpgs): extra TRAINING images, HAM10000 duplicates removed")
     args = ap.parse_args()
 
     seed_everything()
@@ -104,16 +122,26 @@ def main():
     if args.limit:
         parts = {s: d.sample(min(args.limit, len(d)), random_state=SEED) for s, d in parts.items()}
 
+    # Extra training data: only the training split grows; val/test stay the HAM10000 splits.
+    train_df = parts["train"]
+    if args.isic19:
+        extra = load_isic19(args.isic19, set(df["image_id"]))
+        if args.limit:
+            extra = extra.sample(min(args.limit, len(extra)), random_state=SEED)
+        train_df = pd.concat([train_df, extra], ignore_index=True)
+        print(f"isic2019: +{len(extra)} training images {extra['dx'].value_counts().to_dict()}", flush=True)
+
     t0 = time.time()
-    tr_imgs = load_images(parts["train"]["path"], 256)
-    ev_imgs = {s: load_images(parts[s]["path"], 224) for s in ("train", "val", "test")}
+    size = args.img_size
+    tr_imgs = load_images(train_df["path"], round(size * 8 / 7))  # crop source: 256 for 224
+    ev_imgs = {s: load_images(parts[s]["path"], size) for s in ("train", "val", "test")}
     print(f"loaded images in {time.time() - t0:.0f}s", flush=True)
 
     kw = dict(batch_size=args.batch_size, num_workers=args.workers, pin_memory=device.type == "cuda",
               persistent_workers=args.workers > 0)
-    y_tr = parts["train"]["y"].to_numpy()
+    y_tr = train_df["y"].to_numpy()
     train_loader = torch.utils.data.DataLoader(
-        CachedImages(tr_imgs, y_tr, train_transform()), shuffle=True, drop_last=True, **kw)
+        CachedImages(tr_imgs, y_tr, train_transform(size)), shuffle=True, drop_last=True, **kw)
     eval_loaders = {s: torch.utils.data.DataLoader(
         CachedImages(ev_imgs[s], parts[s]["y"].to_numpy()), shuffle=False, **kw)
         for s in ev_imgs}
@@ -175,7 +203,7 @@ def main():
         fmeta = fmeta[fmeta["md5hash"].isin(files)]
         if args.limit:
             fmeta = fmeta.sample(min(args.limit, len(fmeta)), random_state=SEED)
-        fimgs = load_images([files[h] for h in fmeta["md5hash"]], 224)
+        fimgs = load_images([files[h] for h in fmeta["md5hash"]], size)
         fy = fmeta["label"].map(FITZ_TO_HAM).map(CLASSES.index).to_numpy()
         lg, em = predict(model, torch.utils.data.DataLoader(CachedImages(fimgs, fy), shuffle=False, **kw),
                          device)

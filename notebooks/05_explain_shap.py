@@ -24,8 +24,8 @@ import numpy as np
 import pandas as pd
 import shap
 from src.artifacts import load_mask
-from src.data import CLASSES, load_image, load_metadata
-from src.explain import (deletion_curve, feature_groups, gradcam, grouped_urgent_shap, image_shap,
+from src.data import CLASSES, IMG_SIZE, load_image, load_metadata
+from src.explain import (default_masker, deletion_curve, feature_groups, gradcam, grouped_urgent_shap, image_shap,
                          inside_mass, map_similarity, overlay, tabular_shap, urgent_fn)
 from src.fusion import fusion_features
 from src.metrics import p_urgent
@@ -74,8 +74,8 @@ for k, i in enumerate(picks):
     axes[2, k].imshow(overlay(img(i), cams[i], signed=False))
     for r in range(3):
         axes[r, k].axis("off")
-axes[1, 0].text(-15, 112, "SHAP", rotation=90, va="center", ha="right")
-axes[2, 0].text(-15, 112, "Grad-CAM", rotation=90, va="center", ha="right")
+axes[1, 0].text(-15, IMG_SIZE // 2, "SHAP", rotation=90, va="center", ha="right")
+axes[2, 0].text(-15, IMG_SIZE // 2, "Grad-CAM", rotation=90, va="center", ha="right")
 fig.savefig("../figures/shap_vs_gradcam.png")
 
 # %% [markdown]
@@ -92,8 +92,8 @@ for k, i in enumerate(picks[:4]):
     axes[2, k].imshow(overlay(img(i), m_inp))
     axes[2, k].set_title(f"rank corr vs blur {map_similarity(maps[i], m_inp):.2f}", fontsize=8)
 for a in axes.flat: a.axis("off")
-axes[1, 0].text(-15, 112, "blur(64,64)", rotation=90, va="center", ha="right")
-axes[2, 0].text(-15, 112, "inpaint_telea", rotation=90, va="center", ha="right")
+axes[1, 0].text(-15, IMG_SIZE // 2, default_masker(), rotation=90, va="center", ha="right")
+axes[2, 0].text(-15, IMG_SIZE // 2, "inpaint_telea", rotation=90, va="center", ha="right")
 fig.savefig("../figures/shap_maskers.png")
 
 # %% [markdown]
@@ -167,7 +167,7 @@ for i in hunt_ids:
     im = img(i)
     s = image_shap(f_u, im, max_evals=EV(500))
     m = load_mask(MASKS.format(i))
-    k = 22  # corner patch size (10% of 224)
+    k = int(0.1 * IMG_SIZE)  # corner patch size: 10% of the side
     corner = np.zeros_like(m); corner[:k, :k] = corner[:k, -k:] = corner[-k:, :k] = corner[-k:, -k:] = True
     pos = np.clip(s, 0, None)
     rows.append(dict(image_id=i, dx=df.dx[i], dark_corners=df.dark_corners[i], hair=df.hair[i],

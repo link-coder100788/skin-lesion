@@ -69,7 +69,7 @@ def softmax_np(logits: np.ndarray, T: float = 1.0) -> np.ndarray:
 
 
 class Predictor:
-    """Wraps the CNN as a numpy function on (N, 224, 224, 3) images in [0, 1]."""
+    """Wraps the CNN as a numpy function on (N, S, S, 3) images in [0, 1]."""
 
     def __init__(self, model, T: float, device, batch_size: int = 64):
         self.model, self.T, self.device, self.batch_size = model, T, device, batch_size

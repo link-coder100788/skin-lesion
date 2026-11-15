@@ -1,0 +1,26 @@
+{
+  "selection_rule": "best validation balanced accuracy (decided before the sweep)",
+  "common": "224px, weighted CE 1/sqrt(freq), 2 head epochs, label smoothing 0.1, drop path 0.2",
+  "configs": {
+    "original b0 (no reg, 12 epochs)": {
+      "val_bacc": 0.676,
+      "val_urgent_auroc": 0.897,
+      "val_spec_at_90_sens": 0.7
+    },
+    "b0_reg (20 epochs)": {
+      "val_bacc": 0.701,
+      "val_urgent_auroc": 0.894,
+      "val_spec_at_90_sens": 0.697
+    },
+    "b2_reg (15 epochs)": {
+      "val_bacc": 0.682,
+      "val_urgent_auroc": 0.889,
+      "val_spec_at_90_sens": 0.672
+    },
+    "b3_reg (15 epochs)": {
+      "val_bacc": null,
+      "note": "disqualified: fp16 inference overflow produced inf/NaN logits; fixed in src/train.py for future runs"
+    }
+  },
+  "winner": "b0_reg"
+}

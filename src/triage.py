@@ -22,7 +22,7 @@ DISCLAIMER = ("Student research demo, not a medical device and not a diagnosis. 
 
 
 def prepare(img: np.ndarray) -> np.ndarray:
-    """uint8 HWC image (any size) -> (224, 224, 3) float32 in [0, 1], resized full-frame."""
+    """uint8 HWC image (any size) -> (IMG_SIZE, IMG_SIZE, 3) float32 in [0, 1], resized full-frame."""
     from PIL import Image
 
     pil = Image.fromarray(img).convert("RGB").resize((IMG_SIZE, IMG_SIZE), Image.BILINEAR)

@@ -17,14 +17,21 @@ def urgent_fn(predictor):
     return f
 
 
-def image_shap(fn, img01: np.ndarray, max_evals: int = 500, masker: str = "blur(64,64)",
-               batch_size: int = 50, seed: int = 0) -> np.ndarray:
-    """Partition SHAP for a single-output function on one (224, 224, 3) image in [0, 1].
+def default_masker(size: int = IMG_SIZE) -> str:
+    """blur(64,64) at 224 px, scaled with the input size."""
+    k = round(64 * size / 224)
+    return f"blur({k},{k})"
 
-    Returns a (224, 224) map summed over colour channels: positive = pushes the output up
+
+def image_shap(fn, img01: np.ndarray, max_evals: int = 500, masker: str | None = None,
+               batch_size: int = 50, seed: int = 0) -> np.ndarray:
+    """Partition SHAP for a single-output function on one (S, S, 3) image in [0, 1].
+
+    Returns an (S, S) map summed over colour channels: positive = pushes the output up
     (toward "see a doctor" for urgent_fn), negative = pushes it down.
     """
     np.random.seed(seed)
+    masker = masker or default_masker(img01.shape[0])
     # SHAP's inpaint maskers cast to uint8 before calling OpenCV, which zeroes a [0, 1] image.
     # So we explain in 0-255 space and rescale inside the wrapped function (blur is unaffected).
     m = shap.maskers.Image(masker, img01.shape)
@@ -45,17 +52,26 @@ class _UrgentTarget:
         return torch.softmax(logits / self.T, dim=-1)[..., URGENT_IDX].sum(-1)
 
 
+def gradcam_layer(model):
+    """Last spatial feature layer: EfficientNet's conv_head, otherwise timm's last feature stage
+    (MobileNetV3/V4 apply conv_head *after* global pooling, so it has no spatial map)."""
+    if type(model).__name__ == "EfficientNet":
+        return model.conv_head
+    return model.get_submodule(model.feature_info[-1]["module"])
+
+
 def gradcam(model, img01: np.ndarray, T: float, device) -> np.ndarray:
-    """Grad-CAM on EfficientNet's conv_head for p_urgent, as a (224, 224) map in [0, 1]."""
+    """Grad-CAM on the last spatial layer for p_urgent, as an (S, S) map in [0, 1]."""
     from pytorch_grad_cam import GradCAM
 
     x = to_model_input(img01[None]).to(device)
-    with GradCAM(model=model, target_layers=[model.conv_head]) as cam:
+    with GradCAM(model=model, target_layers=[gradcam_layer(model)]) as cam:
         return cam(input_tensor=x, targets=[_UrgentTarget(T)])[0]
 
 
 # ----------------------------------------------------------------------------- checks
-def blurred(img01: np.ndarray, k: int = 63) -> np.ndarray:
+def blurred(img01: np.ndarray, k: int | None = None) -> np.ndarray:
+    k = k or (round(63 * img01.shape[0] / 224) | 1)  # 63 px at 224, odd, scaled with size
     return cv2.GaussianBlur(img01, (k, k), 0)
 
 

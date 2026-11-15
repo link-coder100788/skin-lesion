@@ -22,8 +22,11 @@ def hair_fraction(img: np.ndarray) -> float:
     return float((blackhat > 25).mean())
 
 
-def load_mask(path, size: int = 224) -> np.ndarray:
-    """Load a HAM10000 segmentation PNG as a boolean size x size mask."""
+def load_mask(path, size: int | None = None) -> np.ndarray:
+    """Load a HAM10000 segmentation PNG as a boolean size x size mask (default IMG_SIZE)."""
+    from .data import IMG_SIZE
+
+    size = size or IMG_SIZE
     m = cv2.imread(str(path), cv2.IMREAD_GRAYSCALE)
     return cv2.resize(m, (size, size), interpolation=cv2.INTER_NEAREST) > 127
 
