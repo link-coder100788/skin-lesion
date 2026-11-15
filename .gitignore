@@ -1,0 +1,12 @@
+.env
+.venv/
+data/
+models/*.pt
+models/*.npz
+kaggle/out/
+kaggle/build/
+__pycache__/
+.ipynb_checkpoints/
+*.pyc
+.DS_Store
+.gradio/
