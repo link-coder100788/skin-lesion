@@ -46,6 +46,11 @@ test["p_urgent_cnn"] = p_urgent(test_cnn)
 test["pred"] = np.array(CLASSES)[test_cnn.argmax(1)]
 img = lambda i: load_image(df.loc[i, "path"]).astype(np.float32) / 255
 rng = np.random.default_rng(0)
+# QUICK=1 shrinks every sample (and SHAP budget) for a fast end-to-end check of this notebook.
+import os
+QUICK = os.environ.get("QUICK") == "1"
+N = (lambda n: max(2, n // 10)) if QUICK else (lambda n: n)
+EV = (lambda n: 100) if QUICK else (lambda n: n)
 
 # %% [markdown]
 # ## 1 · Image SHAP on p_urgent
@@ -58,7 +63,7 @@ for c in ["mel", "bcc", "akiec", "nv", "bkl", "vasc"]:
     picks.append(cand.sample(1, random_state=1).index[0])
 
 t0 = time.time()
-maps = {i: image_shap(f_u, img(i), max_evals=2000) for i in picks}
+maps = {i: image_shap(f_u, img(i), max_evals=EV(2000)) for i in picks}
 cams = {i: gradcam(pipe.model, img(i), pipe.T, pipe.device) for i in picks}
 print(f"SHAP: {(time.time() - t0) / len(picks):.1f}s per image at max_evals=2000")
 
@@ -81,7 +86,7 @@ fig.savefig("../figures/shap_vs_gradcam.png")
 fig, axes = plt.subplots(3, 4, figsize=(10, 7.5))
 for k, i in enumerate(picks[:4]):
     t0 = time.time()
-    m_inp = image_shap(f_u, img(i), max_evals=1000, masker="inpaint_telea")
+    m_inp = image_shap(f_u, img(i), max_evals=EV(1000), masker="inpaint_telea")
     axes[0, k].imshow(img(i)); axes[0, k].set_title(df.dx[i], fontsize=9)
     axes[1, k].imshow(overlay(img(i), maps[i]))
     axes[2, k].imshow(overlay(img(i), m_inp))
@@ -93,18 +98,20 @@ fig.savefig("../figures/shap_maskers.png")
 
 # %% [markdown]
 # ## 2 · SHAP vs. Grad-CAM agreement
-# Rank correlation between the positive SHAP map and Grad-CAM on 40 random test images.
+# Rank correlation between the positive SHAP map and Grad-CAM on 40 test images the CNN calls
+# urgent. (For images with p_urgent ≈ 0 the softmax saturates, the Grad-CAM gradient vanishes
+# and its map is all zeros, so agreement is undefined there.)
 
 # %%
-sample = test.sample(40, random_state=2).index
+sample = test[test.p_urgent_cnn >= pipe.cfg["tau_cnn"]].sample(N(40), random_state=2).index
 agree = []
 for i in sample:
-    s = image_shap(f_u, img(i), max_evals=500)
+    s = image_shap(f_u, img(i), max_evals=EV(500))
     g = gradcam(pipe.model, img(i), pipe.T, pipe.device)
     agree.append(map_similarity(np.clip(s, 0, None), g))
 agree = np.array(agree)
-print(f"SHAP vs Grad-CAM rank correlation: median {np.median(agree):.2f}, IQR "
-      f"{np.percentile(agree, 25):.2f}–{np.percentile(agree, 75):.2f}")
+print(f"SHAP vs Grad-CAM rank correlation on {np.isfinite(agree).sum()} images: median "
+      f"{np.nanmedian(agree):.2f}, IQR {np.nanpercentile(agree, 25):.2f}–{np.nanpercentile(agree, 75):.2f}")
 
 # %% [markdown]
 # ## 3 · Tabular SHAP on the fusion model
@@ -133,7 +140,7 @@ print("base", round(float(expl.base_values), 3), dict(zip(expl.feature_names, np
 
 # %%
 # Average absolute group contribution over the test set: how much does metadata matter at all?
-sub = X_test.sample(150, random_state=4)
+sub = X_test.sample(N(150), random_state=4)
 contrib = np.array([grouped_urgent_shap(pipe.xgb.predict_proba, r, pipe.background).values
                     for _, r in sub.iterrows()])
 group_importance = pd.Series(np.abs(contrib).mean(0), index=list(feature_groups(X_test.columns))).round(4)
@@ -147,8 +154,10 @@ group_importance
 
 # %%
 art = test[test.dark_corners | test.hair]
+if QUICK:
+    art = art.head(6)
 clean = test[~(test.dark_corners | test.hair)].groupby("dx", group_keys=False).apply(
-    lambda g: g.sample(min(len(g), 15), random_state=5))
+    lambda g: g.sample(min(len(g), N(15)), random_state=5))
 hunt_ids = list(dict.fromkeys(list(art.index) + list(clean.index)))
 print(len(art), "artifact-flagged +", len(clean), "clean test images")
 
@@ -156,7 +165,7 @@ rows = []
 t0 = time.time()
 for i in hunt_ids:
     im = img(i)
-    s = image_shap(f_u, im, max_evals=500)
+    s = image_shap(f_u, im, max_evals=EV(500))
     m = load_mask(MASKS.format(i))
     k = 22  # corner patch size (10% of 224)
     corner = np.zeros_like(m); corner[:k, :k] = corner[:k, -k:] = corner[-k:, :k] = corner[-k:, -k:] = True
@@ -184,7 +193,7 @@ by_class, by_group
 dk = hunt[hunt.dark_corners].sort_values("corner_share", ascending=False).head(6).index
 fig, axes = plt.subplots(2, len(dk), figsize=(2.6 * len(dk), 5.5))
 for k, i in enumerate(dk):
-    s = image_shap(f_u, img(i), max_evals=2000)
+    s = image_shap(f_u, img(i), max_evals=EV(2000))
     axes[0, k].imshow(img(i)); axes[0, k].set_title(f"{df.dx[i]} · p_urg {test.p_urgent_cnn[i]:.2f}", fontsize=8)
     axes[1, k].imshow(overlay(img(i), s))
     m = load_mask(MASKS.format(i)); axes[1, k].contour(m, levels=[.5], colors="lime", linewidths=.8)
@@ -208,12 +217,12 @@ fig.savefig("../figures/shortcut_inside_hist.png")
 
 # %%
 fracs = np.linspace(0, 0.5, 11)
-del_ids = test[test.p_urgent_cnn >= pipe.cfg["tau_cnn"]].sample(50, random_state=6).index
+del_ids = test[test.p_urgent_cnn >= pipe.cfg["tau_cnn"]].sample(N(50), random_state=6).index
 curves = {"SHAP": [], "Grad-CAM": [], "random": []}
 for i in del_ids:
     im = img(i)
     p0 = f_u(im[None])[0, 0]
-    curves["SHAP"].append(deletion_curve(f_u, im, image_shap(f_u, im, max_evals=500), fracs) / p0)
+    curves["SHAP"].append(deletion_curve(f_u, im, image_shap(f_u, im, max_evals=EV(500)), fracs) / p0)
     curves["Grad-CAM"].append(deletion_curve(f_u, im, gradcam(pipe.model, im, pipe.T, pipe.device), fracs) / p0)
     curves["random"].append(deletion_curve(f_u, im, None, fracs) / p0)
 auc = {k: float(np.trapezoid(np.mean(v, 0), fracs) / fracs[-1]) for k, v in curves.items()}
@@ -233,20 +242,20 @@ auc
 
 # %%
 stab = []
-for i in test.sample(20, random_state=7).index:
+for i in test.sample(N(20), random_state=7).index:
     im = img(i)
-    s0 = image_shap(f_u, im, max_evals=1000)
-    s_flip = image_shap(f_u, im[:, ::-1].copy(), max_evals=1000)[:, ::-1]
+    s0 = image_shap(f_u, im, max_evals=EV(1000))
+    s_flip = image_shap(f_u, im[:, ::-1].copy(), max_evals=EV(1000))[:, ::-1]
     noisy = np.clip(im + rng.normal(0, 0.02, im.shape).astype(np.float32), 0, 1)
-    s_noise = image_shap(f_u, noisy, max_evals=1000)
-    s_again = image_shap(f_u, im, max_evals=1000, seed=1)
+    s_noise = image_shap(f_u, noisy, max_evals=EV(1000))
+    s_again = image_shap(f_u, im, max_evals=EV(1000), seed=1)
     stab.append(dict(flip=map_similarity(s0, s_flip), noise=map_similarity(s0, s_noise),
                      rerun=map_similarity(s0, s_again)))
 stab = pd.DataFrame(stab)
 stab.describe().loc[["mean", "50%", "min"]].round(3)
 
 # %%
-json.dump({"shap_gradcam_agreement_median": float(np.median(agree)),
+json.dump({"shap_gradcam_agreement_median": float(np.nanmedian(agree)),
            "group_importance": group_importance.to_dict(),
            "shortcut_by_class": by_class.reset_index().to_dict("records"),
            "shortcut_by_group": by_group.reset_index().to_dict("records"),

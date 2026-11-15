@@ -75,10 +75,13 @@ pd.Series(all_metrics(p_cal, y_val, tau)).round(3)
 
 # %%
 X_val = fusion_features(p_cal, val.reset_index())
+# Same 1/sqrt(class_freq) weighting as the CNN, so the comparison is like for like.
+from src.train import class_weights
+w_val = class_weights(y_val).numpy()[y_val]
 oof = np.zeros_like(p_cal)
 sgkf = StratifiedGroupKFold(n_splits=5, shuffle=True, random_state=42)
 for tr, te in sgkf.split(X_val, y_val, groups=val["lesion_id"]):
-    m = make_xgb().fit(X_val.iloc[tr], y_val[tr])
+    m = make_xgb().fit(X_val.iloc[tr], y_val[tr], sample_weight=w_val[tr])
     oof[te] = m.predict_proba(X_val.iloc[te])
 
 tau_fusion = threshold_for_sensitivity(yu_val, p_urgent(oof), 0.90)
@@ -99,36 +102,42 @@ d = cmp["CNN + metadata (OOF)"] - cmp["CNN alone"]
 use_fusion = bool(d["auroc_urgent"] >= 0.005 and d["specificity_urgent"] > 0 and d["balanced_accuracy"] >= 0)
 print("use_fusion =", use_fusion, d.round(3).to_dict())
 
-xgb = make_xgb().fit(X_val, y_val)
+xgb = make_xgb().fit(X_val, y_val, sample_weight=w_val)
 xgb.save_model("../models/xgb.json")
 X_val.sample(100, random_state=0).to_csv("../models/fusion_background.csv", index=False)
 np.save("../results/val_oof_fusion.npy", oof)
 
 # %% [markdown]
 # ## 4 · Out-of-distribution detector
-# A phone photo or a cat is not a dermoscopy image. Mahalanobis distance of the 1280-d CNN
-# embedding to the nearest class mean (shared, shrunk covariance fit on **train** embeddings).
-# Threshold = 99th percentile of validation distances, so ~1% of real dermoscopy images get
-# flagged. We also record a "low confidence" threshold on max softmax probability (10th
-# percentile on validation).
+# A phone photo or a cat is not a dermoscopy image. Two scores on the 1280-d CNN embedding,
+# each thresholded at its 99th percentile on validation (so each flags ~1% of real images):
+# - **kNN distance** (Sun et al., 2022): cosine distance to the 10th-nearest *train* embedding.
+# - **Mahalanobis distance** to the nearest class mean (shared, Ledoit-Wolf covariance).
+#
+# Either one alone missed several non-skin images in development: the fine-tuned embedding
+# maps many natural photos close to lesions (kNN misses flat images, Mahalanobis misses
+# textured ones), so an image is flagged if *either* score is out of range.
+# A separate "low confidence" badge uses max softmax probability (10th percentile on validation).
 
 # %%
 from sklearn.covariance import LedoitWolf
+from src.triage import OODDetector
 
 emb_tr = out["train_emb"].astype(np.float64)
 y_tr = df.loc[out["train_ids"], "y"].to_numpy()
 means = np.stack([emb_tr[y_tr == k].mean(0) for k in range(7)])
-lw = LedoitWolf().fit(emb_tr - means[y_tr])
-precision = lw.precision_
+precision = LedoitWolf().fit(emb_tr - means[y_tr]).precision_
+bank = (emb_tr / np.linalg.norm(emb_tr, axis=1, keepdims=True)).astype(np.float32)
 
-from src.triage import OODDetector
-det = OODDetector(means, precision, np.inf, 0.0)
-d_val = det.distance(out["val_emb"].astype(np.float64))
-maha_thr = float(np.percentile(d_val, 99))
+det = OODDetector(means, precision, bank, np.inf, np.inf, 0.0)
+d_val, k_val = det.distance(out["val_emb"].astype(np.float64)), det.knn(out["val_emb"].astype(np.float64))
+maha_thr, knn_thr = float(np.percentile(d_val, 99)), float(np.percentile(k_val, 99))
 msp_thr = float(np.percentile(p_cal.max(1), 10))
-print(f"maha threshold {maha_thr:.1f}, msp threshold {msp_thr:.3f}")
-np.savez("../models/ood.npz", means=means, precision=precision, maha_threshold=maha_thr,
-         msp_threshold=msp_thr)
+val_flag_rate = float(((d_val > maha_thr) | (k_val > knn_thr)).mean())
+print(f"maha thr {maha_thr:.1f}, kNN thr {knn_thr:.3f}, msp thr {msp_thr:.3f}; "
+      f"validation images flagged by either: {val_flag_rate:.1%}")
+np.savez("../models/ood.npz", means=means, precision=precision, bank=bank, maha_threshold=maha_thr,
+         knn_threshold=knn_thr, msp_threshold=msp_thr)
 
 # %% [markdown]
 # ### Test the detector on images that are clearly not dermoscopy
@@ -160,9 +169,10 @@ model = load_model("../models/cnn.pt", device)
 X = to_model_input(np.stack([to01(v) for v in ood_imgs.values()])).to(device)
 lg, em = logits_and_embeddings(model, X)
 pr = softmax_np(lg.cpu().numpy(), T)
-det = OODDetector(means, precision, maha_thr, msp_thr)
+det = OODDetector(means, precision, bank, maha_thr, knn_thr, msp_thr)
 f = det.flags(em.cpu().numpy().astype(np.float64), pr)
-ood_table = pd.DataFrame({"maha": f["maha"].round(0), "flag_unlike_training": f["unlike_training"],
+ood_table = pd.DataFrame({"maha": f["maha"].round(0), "knn": f["knn"].round(3),
+                          "flag_unlike_training": f["unlike_training"],
                           "max_softmax": pr.max(1).round(2), "flag_low_conf": f["low_confidence"],
                           "would_triage": np.where(p_urgent(pr) >= tau, "urgent", "benign")},
                          index=list(ood_imgs))
@@ -172,35 +182,52 @@ ood_table
 fig, axes = plt.subplots(2, 6, figsize=(13, 5))
 for ax, (name, img), (_, r) in zip(axes.flat, ood_imgs.items(), ood_table.iterrows()):
     ax.imshow(to01(img)); ax.axis("off")
-    ax.set_title(f"{name}\n{'FLAGGED' if r.flag_unlike_training else 'not flagged'} (d={r.maha:.0f})",
+    ax.set_title(f"{name}\n{'FLAGGED' if r.flag_unlike_training else 'not flagged'} (kNN {r.knn:.2f})",
                  fontsize=8, color="#1e8449" if r.flag_unlike_training else "#c0392b")
-fig.suptitle(f"OOD check: Mahalanobis threshold {maha_thr:.0f} (99th pct of validation)", fontsize=10)
+fig.suptitle(f"OOD check on non-dermoscopy images: {int(ood_table.flag_unlike_training.sum())}/{len(ood_table)} flagged", fontsize=10)
 fig.savefig("../figures/ood_examples.png")
 
+# %% [markdown]
+# **Caveat:** the kNN + Mahalanobis combination was chosen *after* Mahalanobis alone failed on
+# the images above, so they are not a clean test. Below is a second set of non-dermoscopy
+# images that played no part in designing the detector (thresholds unchanged).
+
 # %%
+fresh = {"coins": skd.coins(), "moon": skd.moon(), "page of text": skd.page(), "horse": skd.horse().astype(np.uint8) * 255,
+         "histology (IHC)": skd.immunohistochemistry(), "retina": skd.retina(), "colour wheel": skd.colorwheel(),
+         "logo": skd.logo(), "clock": skd.clock(), "motorcycle": skd.stereo_motorcycle()[0]}
+Xf = to_model_input(np.stack([to01(v) for v in fresh.values()])).to(device)
+lgf, emf = logits_and_embeddings(model, Xf)
+ff = det.flags(emf.cpu().numpy().astype(np.float64), softmax_np(lgf.cpu().numpy(), T))
+fresh_table = pd.DataFrame({"knn": ff["knn"].round(3), "maha": ff["maha"].round(0),
+                            "flag_unlike_training": ff["unlike_training"]}, index=list(fresh))
+print(f"fresh non-dermoscopy images flagged: {int(ff['unlike_training'].sum())}/{len(fresh)}")
+fresh_table
+
+# %%
+fz_emb = out["fitz_emb"].astype(np.float64)
+fz_flag = det.flags(fz_emb, softmax_np(out["fitz_logits"], T))["unlike_training"]
 fig, ax = plt.subplots(figsize=(6, 3))
-bins = np.linspace(0, max(d_val.max(), f["maha"].max()) * 1.05, 60)
-ax.hist(d_val, bins=bins, alpha=.7, label="HAM10000 validation", density=True)
-fz = det.distance(out["fitz_emb"].astype(np.float64)) if "fitz_emb" in out.files else None
-if fz is not None:
-    ax.hist(fz, bins=bins, alpha=.6, label="Fitzpatrick17k (clinical photos)", density=True)
-for v in f["maha"]:
+bins = np.linspace(min(k_val.min(), f["knn"].min()) * .95, max(k_val.max(), f["knn"].max()) * 1.02, 50)
+ax.hist(k_val, bins=bins, alpha=.7, label="HAM10000 validation (dermoscopy)", density=True)
+ax.hist(det.knn(fz_emb), bins=bins, alpha=.6, label="Fitzpatrick17k (clinical photos)", density=True)
+for v in f["knn"]:
     ax.axvline(v, color="k", lw=.6, alpha=.6)
-ax.axvline(maha_thr, color="r", ls="--", label="threshold")
-ax.set_xlabel("Mahalanobis distance (black ticks = non-skin images)"); ax.legend(fontsize=8)
+ax.axvline(knn_thr, color="r", ls="--", label="threshold")
+ax.set_xlabel("kNN cosine distance to training set (black ticks = non-skin images)"); ax.legend(fontsize=8)
 fig.savefig("../figures/ood_distances.png")
-if fz is not None:
-    print(f"Fitzpatrick17k images flagged as unlike training: {(fz > maha_thr).mean():.1%}")
+print(f"Fitzpatrick17k clinical photos flagged as unlike training: {fz_flag.mean():.1%}")
 
 # %%
 cfg = {"T": T, "tau": tau, "tau_fusion": tau_fusion, "use_fusion": use_fusion,
-       "maha_threshold": maha_thr, "msp_threshold": msp_thr}
+       "maha_threshold": maha_thr, "knn_threshold": knn_thr, "msp_threshold": msp_thr}
 if use_fusion:
     cfg["tau"] = tau_fusion  # the pipeline thresholds whichever probabilities it uses
 cfg["tau_cnn"] = tau
 json.dump(cfg, open("../models/config.json", "w"), indent=2)
 json.dump({"val_comparison": cmp.to_dict(), "ood_nonskin": ood_table.reset_index().to_dict("records"),
-           "fitz_flagged_frac": None if fz is None else float((fz > maha_thr).mean()),
+           "ood_fresh": fresh_table.reset_index().to_dict("records"),
+           "fitz_flagged_frac": float(fz_flag.mean()), "val_flagged_frac": val_flag_rate,
            "ece_val_before": ece(p_raw, y_val), "ece_val_after": ece(p_cal, y_val)},
           open("../results/calibration_fusion.json", "w"), indent=2, default=str)
 cfg

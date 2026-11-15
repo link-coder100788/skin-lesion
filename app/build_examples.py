@@ -23,7 +23,7 @@ from src.explain import gradcam, image_shap, urgent_fn  # noqa: E402
 from src.model import softmax_np  # noqa: E402
 from src.triage import TriagePipeline, img_key, prepare  # noqa: E402
 
-MAX_EVALS = 2000
+MAX_EVALS = 100 if __import__("os").environ.get("QUICK") == "1" else 2000
 OUT = ROOT / "app/examples"
 
 

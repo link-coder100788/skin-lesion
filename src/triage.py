@@ -38,21 +38,38 @@ def img_key(img01: np.ndarray) -> str:
 
 @dataclass
 class OODDetector:
-    """Flags inputs unlike the training data via Mahalanobis distance of the CNN embedding
-    (shared covariance, per-class means) and, separately, low max-softmax confidence."""
+    """Flags inputs unlike the training data. An image is "unlike training" if either
+    - its kNN cosine distance (10th neighbour) to the train embeddings, or
+    - its Mahalanobis distance to the nearest class mean (shared covariance)
+    exceeds the 99th percentile seen on validation. Low max-softmax is reported separately."""
     means: np.ndarray            # (7, d)
     precision: np.ndarray        # (d, d)
+    bank: np.ndarray             # (n_train, d) L2-normalised train embeddings
     maha_threshold: float
+    knn_threshold: float
     msp_threshold: float
+    k: int = 10
+
+    @classmethod
+    def load(cls, path) -> "OODDetector":
+        d = np.load(path)
+        return cls(d["means"], d["precision"], d["bank"], float(d["maha_threshold"]),
+                   float(d["knn_threshold"]), float(d["msp_threshold"]))
 
     def distance(self, emb: np.ndarray) -> np.ndarray:
         diffs = emb[:, None, :] - self.means[None]           # n, 7, d
         d = np.einsum("nkd,de,nke->nk", diffs, self.precision, diffs)
         return d.min(1)
 
+    def knn(self, emb: np.ndarray) -> np.ndarray:
+        z = emb / np.linalg.norm(emb, axis=1, keepdims=True)
+        sims = z.astype(np.float32) @ self.bank.T
+        return 1.0 - np.sort(sims, axis=1)[:, -self.k]
+
     def flags(self, emb: np.ndarray, probs: np.ndarray) -> dict:
-        dist = self.distance(emb)
-        return {"maha": dist, "unlike_training": dist > self.maha_threshold,
+        dist, kd = self.distance(emb), self.knn(emb)
+        return {"maha": dist, "knn": kd,
+                "unlike_training": (dist > self.maha_threshold) | (kd > self.knn_threshold),
                 "low_confidence": probs.max(1) < self.msp_threshold}
 
 
@@ -79,9 +96,7 @@ class TriagePipeline:
         self.use_fusion = cfg.get("use_fusion", False)
         self.model = load_model(d / "cnn.pt", self.device)
         self.predictor = Predictor(self.model, self.T, self.device)
-        ood = np.load(d / "ood.npz")
-        self.ood = OODDetector(ood["means"], ood["precision"], float(ood["maha_threshold"]),
-                               float(ood["msp_threshold"]))
+        self.ood = OODDetector.load(d / "ood.npz")
         self.xgb = None
         if (d / "xgb.json").exists():
             from .fusion import make_xgb

@@ -31,8 +31,8 @@ test = df.loc[out["test_ids"]]
 y = test["y"].to_numpy()
 
 xgb = make_xgb(); xgb.load_model("../models/xgb.json")
-base = np.load("../results/baseline_preds.npz")
-assert (base["test_ids"] == out["test_ids"]).all() or set(base["test_ids"]) == set(out["test_ids"])
+base = np.load("../results/baseline_preds.npz", allow_pickle=True)
+# align baseline rows (notebook 02 order) to the CNN's test order
 order = pd.Series(range(len(base["test_ids"])), index=base["test_ids"]).loc[out["test_ids"]].to_numpy()
 
 p_cnn_raw = softmax_np(out["test_logits"])
@@ -121,9 +121,8 @@ fz["group"] = pd.cut(fz["fitzpatrick_scale"], [0, 2, 4, 6], labels=["I–II", "I
 print(len(fz), "images;", fz["label"].map(FITZ_TO_HAM).value_counts().to_dict())
 
 from src.triage import OODDetector
-ood = np.load("../models/ood.npz")
-det = OODDetector(ood["means"], ood["precision"], float(ood["maha_threshold"]), float(ood["msp_threshold"]))
-fz["ood"] = det.distance(out["fitz_emb"].astype(np.float64)) > float(ood["maha_threshold"])
+det = OODDetector.load("../models/ood.npz")
+fz["ood"] = det.flags(out["fitz_emb"].astype(np.float64), p_fz)["unlike_training"]
 
 def boot_sens(yu, s, tau, n=1000, seed=0):
     r = np.random.default_rng(seed); pos = s[yu == 1]
