@@ -17,7 +17,15 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 HAM, FITZ, MASKS = ("kmader/skin-cancer-mnist-ham10000", "asosenge/fitzpatrick17k",
                     "tschandl/ham10000-lesion-segmentations")
-SLUGS = {"train": "skin-lesion-triage-train", "explain": "skin-lesion-triage-explain"}
+SLUGS = {"train": "skin-lesion-triage-train", "explain": "skin-lesion-triage-explain",
+         "sweep": "skin-lesion-triage-sweep"}
+# Validation-only model sweep. All at 224 px so the SHAP/app pipeline is unchanged; the winner
+# is picked on validation balanced accuracy, never on test.
+SWEEP = {
+    "b0_reg": "--backbone efficientnet_b0 --label-smoothing 0.1 --drop-path 0.2 --epochs 20",
+    "b2_reg": "--backbone efficientnet_b2 --label-smoothing 0.1 --drop-path 0.2 --epochs 15",
+    "b3_reg": "--backbone efficientnet_b3 --label-smoothing 0.1 --drop-path 0.2 --epochs 15",
+}
 # Pin the libraries whose versions affect saved artifacts (xgb.json, SHAP) to the local .venv.
 PINS = "timm==1.0.31 shap==0.54.1 xgboost==3.4.1 grad-cam==1.5.7 jupytext==1.19.6"
 
@@ -43,6 +51,15 @@ subprocess.run([sys.executable, "-m", "src.train", "--ham", str(ham), "--fitz", 
                cwd=work, check=True)
 '''
 
+SWEEP_BODY = '''
+for name, extra in {sweep!r}.items():
+    print("=== config", name, extra, flush=True)
+    r = subprocess.run([sys.executable, "-m", "src.train", "--ham", str(ham), "--fitz", str(fitz),
+                        "--split", "splits/split.csv", "--out", f"/kaggle/working/{{name}}",
+                        "--workers", "4", *extra.split()], cwd=work)
+    print("=== config", name, "exit", r.returncode, flush=True)
+'''
+
 EXPLAIN = '''
 import shutil
 masks = next(inp.rglob("HAM10000_segmentations_lesion_tschandl"))
@@ -52,8 +69,10 @@ for name, target in [("ham", ham), ("fitz", fitz), ("masks", masks.parent)]:
     if not link.exists():
         link.symlink_to(target)
 (work / "models").mkdir(exist_ok=True)
+MODEL_DIR = __MODEL_DIR__  # sub-folder of the source kernel's output holding the chosen model
 for f in ("cnn.pt", "outputs.npz", "train_log.json"):
-    shutil.copy(next(p for p in inp.rglob(f) if "proj" not in str(p)), work / "models" / f)
+    src = next(p for p in inp.rglob(f) if "proj" not in str(p) and (not MODEL_DIR or p.parent.name == MODEL_DIR))
+    shutil.copy(src, work / "models" / f)
 for d in ("figures", "results", "app/examples"):
     (work / d).mkdir(parents=True, exist_ok=True)
 
@@ -88,20 +107,25 @@ def main():
     ap.add_argument("--user", required=True)
     ap.add_argument("--extra", default="", help="train only: extra args for src.train")
     ap.add_argument("--quick", action="store_true", help="explain only: QUICK=1 smoke run")
+    ap.add_argument("--from-sweep", default="", help="explain only: use this sweep config's model")
     args = ap.parse_args()
 
     paths = sorted((ROOT / "src").glob("*.py")) + [ROOT / "splits/split.csv"]
-    if args.kind == "train":
+    if args.kind == "sweep":
+        body, workdir, datasets, kernels = (SWEEP_BODY.format(sweep=SWEEP), "/kaggle/working/code",
+                                            [HAM, FITZ], [])
+    elif args.kind == "train":
         extra = ", ".join(repr(a) for a in args.extra.split()) or "'--workers', '4'"
         body, workdir, datasets, kernels = TRAIN.format(extra=extra), "/kaggle/working/code", [HAM, FITZ], []
     else:
         paths += sorted((ROOT / "notebooks").glob("0[3-6]_*.py"))
         paths += [ROOT / "app/build_examples.py", ROOT / "results/artifact_flags.csv",
                   ROOT / "results/baseline_preds.npz"]
-        body, workdir = EXPLAIN, "/kaggle/working/proj"
+        body, workdir = EXPLAIN.replace("__MODEL_DIR__", repr(args.from_sweep)), "/kaggle/working/proj"
         if args.quick:
             body = '\nos.environ["QUICK"] = "1"\n' + body
-        datasets, kernels = [HAM, FITZ, MASKS], [f"{args.user}/{SLUGS['train']}"]
+        source = SLUGS["sweep"] if args.from_sweep else SLUGS["train"]
+        datasets, kernels = [HAM, FITZ, MASKS], [f"{args.user}/{source}"]
 
     build = ROOT / "kaggle/build" / args.kind
     build.mkdir(parents=True, exist_ok=True)

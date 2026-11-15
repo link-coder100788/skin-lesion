@@ -1,6 +1,9 @@
 """CNN backbone, temperature scaling, and inference helpers."""
 from __future__ import annotations
 
+import json
+from pathlib import Path
+
 import numpy as np
 import timm
 import torch
@@ -11,12 +14,17 @@ from .data import CLASSES, to_model_input
 BACKBONE = "efficientnet_b0"
 
 
-def create_model(pretrained: bool = True) -> nn.Module:
-    return timm.create_model(BACKBONE, pretrained=pretrained, num_classes=len(CLASSES))
+def create_model(pretrained: bool = True, backbone: str = BACKBONE, drop_path: float = 0.0) -> nn.Module:
+    return timm.create_model(backbone, pretrained=pretrained, num_classes=len(CLASSES),
+                             drop_path_rate=drop_path)
 
 
-def load_model(path, device="cpu") -> nn.Module:
-    model = create_model(pretrained=False)
+def load_model(path, device="cpu", backbone: str | None = None) -> nn.Module:
+    """Load a checkpoint; the backbone name comes from the train_log.json next to it."""
+    if backbone is None:
+        log = Path(path).with_name("train_log.json")
+        backbone = json.load(open(log))["args"].get("backbone", BACKBONE) if log.exists() else BACKBONE
+    model = create_model(pretrained=False, backbone=backbone)
     model.load_state_dict(torch.load(path, map_location="cpu"))
     return model.to(device).eval()
 

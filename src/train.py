@@ -86,6 +86,9 @@ def main():
     ap.add_argument("--batch-size", type=int, default=64)
     ap.add_argument("--limit", type=int, default=0, help="subsample per split (smoke test)")
     ap.add_argument("--workers", type=int, default=4)
+    ap.add_argument("--backbone", default="efficientnet_b0")
+    ap.add_argument("--label-smoothing", type=float, default=0.0)
+    ap.add_argument("--drop-path", type=float, default=0.0, help="stochastic depth rate")
     args = ap.parse_args()
 
     seed_everything()
@@ -115,8 +118,9 @@ def main():
         CachedImages(ev_imgs[s], parts[s]["y"].to_numpy()), shuffle=False, **kw)
         for s in ev_imgs}
 
-    model = create_model(pretrained=True).to(device)
-    criterion = nn.CrossEntropyLoss(weight=class_weights(y_tr).to(device))
+    model = create_model(pretrained=True, backbone=args.backbone, drop_path=args.drop_path).to(device)
+    criterion = nn.CrossEntropyLoss(weight=class_weights(y_tr).to(device),
+                                    label_smoothing=args.label_smoothing)
     scaler = torch.amp.GradScaler(enabled=device.type == "cuda")
     history, best = [], -1.0
 
