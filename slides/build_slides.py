@@ -188,12 +188,66 @@ text(s, Inches(7.25), Inches(3.45), Inches(4.3), Inches(0.6), "↓ Tabular SHAP 
 bullets(s, Inches(0.6), Inches(4.3), Inches(12.2), Inches(2.6), [
     "**Split by lesion, not by image: HAM10000 has several photos of the same mole. A random split leaks them "
     "into the test set and inflates scores.",
-    "Weighted cross-entropy (1/√frequency) for the 58:1 class imbalance; checkpoint on balanced accuracy",
+    "Weighted cross-entropy (1/√frequency) for the 58:1 class imbalance"
+    + (", label smoothing + stochastic depth against overfitting" if TRAIN.get("label_smoothing") else "")
+    + "; checkpoint on validation balanced accuracy",
     f"Temperature scaling (T = {CFG['T']:.2f}) so a 0.8 means ~80%; threshold τ = {CFG['tau_cnn']:.3f} chosen on "
     "validation for ≥90% sensitivity, then frozen",
     "Fusion trained only on images the CNN never saw (validation split, lesion-grouped 5-fold CV)",
 ], 16)
 notes(s, "Why two stages: SHAP on 1,280 raw embedding features says nothing; SHAP on 7 probabilities + age/sex/site tells a story.")
+
+# 5b · Choosing the model ------------------------------------------------------------------
+SWEEP = json.load(open(ROOT / "results/sweep.json")) if (ROOT / "results/sweep.json").exists() else None
+if SWEEP and "architecture_sweep" in SWEEP:
+    import matplotlib
+
+    matplotlib.use("Agg")
+    import matplotlib.pyplot as plt
+
+    res = SWEEP["architecture_sweep"]["results"]
+    rows_ = sorted(((NICE.get(k.split(" ")[0].split(".")[0], k), v) for k, v in res.items()),
+                   key=lambda kv: kv[1]["val_bacc"])
+    names = [n for n, _ in rows_]
+    fig, ax = plt.subplots(figsize=(6.4, 3.6), dpi=200)
+    y = range(len(rows_))
+    win = SWEEP["architecture_sweep"]["winner"].split(".")[0]
+    cols_ = ["#c0392b" if NICE.get(win) == n else "#95a5a6" for n in names]
+    ax.barh([i + 0.2 for i in y], [v["val_bacc"] for _, v in rows_], 0.38, color=cols_, label="balanced accuracy")
+    ax.barh([i - 0.2 for i in y], [v["val_urgent_auroc"] for _, v in rows_], 0.38, color=cols_, alpha=0.45,
+            label="urgent AUROC")
+    for i, (_, v) in enumerate(rows_):
+        ax.text(v["val_bacc"] + 0.01, i + 0.2, f"{v['val_bacc']:.3f}", va="center", fontsize=8)
+        ax.text(v["val_urgent_auroc"] + 0.01, i - 0.2, f"{v['val_urgent_auroc']:.3f}", va="center", fontsize=8,
+                color="#5f6b76")
+    ax.set_yticks(list(y), names, fontsize=9)
+    ax.set_xlim(0, 1.08)
+    ax.set_xlabel("validation split (HAM10000, held-out lesions)", fontsize=8)
+    ax.legend(fontsize=8, loc="lower center", bbox_to_anchor=(0.5, 1.0), ncol=2, frameon=False)
+    for sp in ("top", "right"):
+        ax.spines[sp].set_visible(False)
+    fig.tight_layout()
+    fig.savefig(FIG / "model_sweep.png")
+    plt.close(fig)
+
+    best = res[SWEEP["architecture_sweep"]["winner"]]
+    base = res["efficientnet_b0 (b0_reg)"]
+    s = new_slide(f"Same recipe, six architectures: {NICE.get(win, win)} wins", "Choosing the model")
+    image(s, FIG / "model_sweep.png", Inches(0.6), Inches(1.7), w=Inches(7.0))
+    bullets(s, Inches(7.9), Inches(1.9), Inches(5.0), Inches(4.9), [
+        f"**Balanced accuracy {base['val_bacc']:.2f} → {best['val_bacc']:.2f}, urgent AUROC "
+        f"{base['val_urgent_auroc']:.3f} → {best['val_urgent_auroc']:.3f} vs EfficientNet-B0",
+        f"Specificity at 90% sensitivity {base['val_spec_at_90_sens']:.2f} → {best['val_spec_at_90_sens']:.2f}: "
+        "fewer unneeded doctor visits for the same cancers caught",
+        "Chosen on the validation split only; the test set was not used to pick the model",
+        "MobileNetV4-Hybrid-M did not converge with this recipe; that is not a verdict on the model",
+        (f"Deployed: {MODEL} retrained at {SIZE} px with 15,316 extra ISIC 2019 images (training split only)"
+         if TRAIN.get("isic19") else
+         "In progress: retraining the winner at 384 px with 15,316 extra ISIC 2019 images (training only). "
+         "The results on the next slides are still from EfficientNet-B0."),
+    ], 15, space=6)
+    notes(s, "Recipe: 224 px, 20 epochs, AdamW one-cycle, weighted CE, label smoothing 0.1, drop path 0.2. "
+             "Earlier sweep: label smoothing + stochastic depth alone took EfficientNet-B0 from 0.676 to 0.701.")
 
 # 6 · Results -------------------------------------------------------------------------------
 s = new_slide(f"We catch {cnn['sensitivity_urgent'][0]:.0%} of cancers on held-out lesions", "Results · locked test set")
