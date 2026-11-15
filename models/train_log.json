@@ -1,0 +1,102 @@
+{
+  "history": [
+    {
+      "epoch": 0,
+      "phase": "head",
+      "train_loss": 2.7940837407330856,
+      "val_bacc": 0.29216271763877694
+    },
+    {
+      "epoch": 1,
+      "phase": "head",
+      "train_loss": 2.0852497794212552,
+      "val_bacc": 0.3617221497346598
+    },
+    {
+      "epoch": 2,
+      "phase": "full",
+      "train_loss": 1.702590778880163,
+      "val_bacc": 0.47273062738480215
+    },
+    {
+      "epoch": 3,
+      "phase": "full",
+      "train_loss": 1.1168437654818963,
+      "val_bacc": 0.5765920029220776
+    },
+    {
+      "epoch": 4,
+      "phase": "full",
+      "train_loss": 0.8062658545074113,
+      "val_bacc": 0.5932696652515432
+    },
+    {
+      "epoch": 5,
+      "phase": "full",
+      "train_loss": 0.6443676262273701,
+      "val_bacc": 0.6073985718629389
+    },
+    {
+      "epoch": 6,
+      "phase": "full",
+      "train_loss": 0.5359348329382205,
+      "val_bacc": 0.6368385500060167
+    },
+    {
+      "epoch": 7,
+      "phase": "full",
+      "train_loss": 0.4660863196904506,
+      "val_bacc": 0.6360394464866428
+    },
+    {
+      "epoch": 8,
+      "phase": "full",
+      "train_loss": 0.4010523147539261,
+      "val_bacc": 0.6757136129558395
+    },
+    {
+      "epoch": 9,
+      "phase": "full",
+      "train_loss": 0.3645194481819048,
+      "val_bacc": 0.6610355682625677
+    },
+    {
+      "epoch": 10,
+      "phase": "full",
+      "train_loss": 0.33346879468598495,
+      "val_bacc": 0.6564019394028667
+    },
+    {
+      "epoch": 11,
+      "phase": "full",
+      "train_loss": 0.32352852479580346,
+      "val_bacc": 0.6542715733722534
+    },
+    {
+      "epoch": 12,
+      "phase": "full",
+      "train_loss": 0.3131260502775875,
+      "val_bacc": 0.6585427562236588
+    },
+    {
+      "epoch": 13,
+      "phase": "full",
+      "train_loss": 0.29515072573489004,
+      "val_bacc": 0.6574355263732939
+    }
+  ],
+  "best_val_bacc": 0.6757136129558395,
+  "args": {
+    "ham": "/kaggle/input/datasets/kmader/skin-cancer-mnist-ham10000",
+    "split": "splits/split.csv",
+    "fitz": "/kaggle/input/datasets/asosenge/fitzpatrick17k",
+    "out": "/kaggle/working",
+    "head_epochs": 2,
+    "epochs": 12,
+    "batch_size": 64,
+    "limit": 0,
+    "workers": 4
+  },
+  "device": "cuda",
+  "torch": "2.11.0+cu130"
+}

@@ -25,9 +25,12 @@ def image_shap(fn, img01: np.ndarray, max_evals: int = 500, masker: str = "blur(
     (toward "see a doctor" for urgent_fn), negative = pushes it down.
     """
     np.random.seed(seed)
+    # SHAP's inpaint maskers cast to uint8 before calling OpenCV, which zeroes a [0, 1] image.
+    # So we explain in 0-255 space and rescale inside the wrapped function (blur is unaffected).
     m = shap.maskers.Image(masker, img01.shape)
-    explainer = shap.Explainer(fn, m, output_names=["urgent"])
-    sv = explainer(img01[None], max_evals=max_evals, batch_size=batch_size, silent=True)
+    explainer = shap.Explainer(lambda x: fn(np.asarray(x, dtype=np.float32) / 255.0), m,
+                               output_names=["urgent"])
+    sv = explainer(img01[None] * 255.0, max_evals=max_evals, batch_size=batch_size, silent=True)
     return sv.values[0, ..., 0].sum(-1)
 
 
@@ -100,9 +103,10 @@ def overlay(img01: np.ndarray, sal: np.ndarray, signed: bool = True, alpha: floa
 
     sal = cv2.GaussianBlur(sal.astype(np.float32), (0, 0), 3)
     if signed:
-        lim = np.abs(sal).max() + 1e-12
-        rgba = matplotlib.colormaps["bwr"](0.5 + 0.5 * sal / lim)
-        weight = np.abs(sal) / lim
+        # robust scale, so a single extreme block doesn't wash out the rest of the map
+        lim = np.percentile(np.abs(sal), 99.5) + 1e-12
+        rgba = matplotlib.colormaps["bwr"](np.clip(0.5 + 0.5 * sal / lim, 0, 1))
+        weight = np.clip(np.abs(sal) / lim, 0, 1)
     else:
         s = (sal - sal.min()) / (np.ptp(sal) + 1e-12)
         rgba = matplotlib.colormaps["jet"](s)

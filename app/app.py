@@ -72,22 +72,26 @@ def waterfall_chart(expl):
     fig = plt.gcf()
     fig.set_size_inches(5.5, 3)
     ax = fig.axes[0]
-    ax.set_title("How each input moved the urgent score (probability units)", fontsize=10)
+    ax.set_title("Image + metadata model: how each input\nmoved its urgent score (probability units)",
+                 fontsize=9)
     fig.tight_layout()
     return fig
 
 
 def badge_html(res) -> str:
+    if res.unlike_training:
+        # Never give a verdict on an image the model was not built for.
+        return ("<div style='padding:14px;border-radius:10px;border:2px solid #b7950b'>"
+                "<div style='font-size:1.5em;font-weight:700;color:#b7950b'>⚠ CANNOT ASSESS THIS IMAGE</div>"
+                "<div style='margin-top:6px'>It looks unlike the dermoscopy images the model was "
+                "trained on (e.g. a phone photo or a non-skin picture). No triage result is given. "
+                "If you are worried about a spot, see a doctor.</div></div>")
     if res.urgent:
         head, color, advice = "🔴 SEE A DOCTOR SOON", "#c0392b", URGENT_ADVICE
     else:
         head, color, advice = "🟢 LOWER CONCERN", "#1e8449", BENIGN_ADVICE
     warn = ""
-    if res.unlike_training:
-        warn = ("<div style='margin-top:8px;padding:6px 10px;border-radius:6px;background:#f9e79f;"
-                "color:#7d6608'>⚠ This image looks unlike the dermoscopy training data. "
-                "Do not trust this result.</div>")
-    elif res.low_confidence:
+    if res.low_confidence:
         warn = ("<div style='margin-top:8px;padding:6px 10px;border-radius:6px;background:#f9e79f;"
                 "color:#7d6608'>⚠ Low confidence</div>")
     return (f"<div style='padding:14px;border-radius:10px;border:2px solid {color}'>"
@@ -118,7 +122,7 @@ def analyze(img, age, sex, site, progress=gr.Progress()):
     shap_img = (overlay(img01, sal) * 255).astype(np.uint8)
     cam_img = (overlay(img01, cam, signed=False) * 255).astype(np.uint8)
     text = summary_text(res, region_name(sal), tab)
-    if pipe.xgb is not None and not pipe.use_fusion:
+    if pipe.xgb is not None and not pipe.use_fusion and not res.unlike_training:
         text += (" (The decision itself uses the image model alone. Age, sex and site are shown "
                  "for explanation, because adding them did not improve accuracy on held-out data.)")
     return (badge_html(res), prob_chart(res.probs), shap_img, cam_img,

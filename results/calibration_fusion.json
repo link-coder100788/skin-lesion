@@ -1,0 +1,194 @@
+{
+  "val_comparison": {
+    "CNN alone": {
+      "sensitivity_urgent": 0.901,
+      "specificity_urgent": 0.7,
+      "auroc_urgent": 0.897,
+      "balanced_accuracy": 0.676,
+      "ece": 0.024
+    },
+    "CNN + metadata (OOF)": {
+      "sensitivity_urgent": 0.901,
+      "specificity_urgent": 0.706,
+      "auroc_urgent": 0.892,
+      "balanced_accuracy": 0.595,
+      "ece": 0.046
+    }
+  },
+  "ood_nonskin": [
+    {
+      "index": "cat",
+      "maha": 1637.0,
+      "knn": 0.7229999899864197,
+      "flag_unlike_training": true,
+      "max_softmax": 0.6700000166893005,
+      "flag_low_conf": false,
+      "would_triage": "urgent"
+    },
+    {
+      "index": "astronaut",
+      "maha": 2015.0,
+      "knn": 0.703000009059906,
+      "flag_unlike_training": true,
+      "max_softmax": 0.3199999928474426,
+      "flag_low_conf": true,
+      "would_triage": "urgent"
+    },
+    {
+      "index": "coffee",
+      "maha": 2034.0,
+      "knn": 0.7300000190734863,
+      "flag_unlike_training": true,
+      "max_softmax": 0.6100000143051147,
+      "flag_low_conf": false,
+      "would_triage": "benign"
+    },
+    {
+      "index": "rocket",
+      "maha": 1870.0,
+      "knn": 0.6959999799728394,
+      "flag_unlike_training": true,
+      "max_softmax": 0.41999998688697815,
+      "flag_low_conf": true,
+      "would_triage": "benign"
+    },
+    {
+      "index": "bricks",
+      "maha": 3275.0,
+      "knn": 0.8339999914169312,
+      "flag_unlike_training": true,
+      "max_softmax": 0.6299999952316284,
+      "flag_low_conf": false,
+      "would_triage": "benign"
+    },
+    {
+      "index": "camera man",
+      "maha": 2733.0,
+      "knn": 0.7039999961853027,
+      "flag_unlike_training": true,
+      "max_softmax": 0.7400000095367432,
+      "flag_low_conf": false,
+      "would_triage": "benign"
+    },
+    {
+      "index": "grass",
+      "maha": 2012.0,
+      "knn": 0.7139999866485596,
+      "flag_unlike_training": true,
+      "max_softmax": 0.5299999713897705,
+      "flag_low_conf": false,
+      "would_triage": "benign"
+    },
+    {
+      "index": "hubble",
+      "maha": 2177.0,
+      "knn": 0.7149999737739563,
+      "flag_unlike_training": true,
+      "max_softmax": 0.6499999761581421,
+      "flag_low_conf": false,
+      "would_triage": "urgent"
+    },
+    {
+      "index": "blank wall",
+      "maha": 29532172.0,
+      "knn": 0.6119999885559082,
+      "flag_unlike_training": true,
+      "max_softmax": 1.0,
+      "flag_low_conf": false,
+      "would_triage": "benign"
+    },
+    {
+      "index": "noise",
+      "maha": 1615.0,
+      "knn": 0.7639999985694885,
+      "flag_unlike_training": true,
+      "max_softmax": 0.36000001430511475,
+      "flag_low_conf": true,
+      "would_triage": "benign"
+    },
+    {
+      "index": "flat skin tone",
+      "maha": 7339673586.0,
+      "knn": 0.6600000262260437,
+      "flag_unlike_training": true,
+      "max_softmax": 1.0,
+      "flag_low_conf": false,
+      "would_triage": "benign"
+    },
+    {
+      "index": "black",
+      "maha": 1352.0,
+      "knn": 0.765999972820282,
+      "flag_unlike_training": true,
+      "max_softmax": 0.6100000143051147,
+      "flag_low_conf": false,
+      "would_triage": "benign"
+    }
+  ],
+  "ood_fresh": [
+    {
+      "index": "coins",
+      "knn": 0.7390000224113464,
+      "maha": 4167.0,
+      "flag_unlike_training": true
+    },
+    {
+      "index": "moon",
+      "knn": 0.7059999704360962,
+      "maha": 2045.0,
+      "flag_unlike_training": true
+    },
+    {
+      "index": "page of text",
+      "knn": 0.7379999756813049,
+      "maha": 1571.0,
+      "flag_unlike_training": true
+    },
+    {
+      "index": "horse",
+      "knn": 0.8659999966621399,
+      "maha": 2310.0,
+      "flag_unlike_training": true
+    },
+    {
+      "index": "histology (IHC)",
+      "knn": 0.7070000171661377,
+      "maha": 2355.0,
+      "flag_unlike_training": true
+    },
+    {
+      "index": "retina",
+      "knn": 0.6489999890327454,
+      "maha": 2697.0,
+      "flag_unlike_training": false
+    },
+    {
+      "index": "colour wheel",
+      "knn": 0.7440000176429749,
+      "maha": 2742.0,
+      "flag_unlike_training": true
+    },
+    {
+      "index": "logo",
+      "knn": 0.6759999990463257,
+      "maha": 4864.0,
+      "flag_unlike_training": true
+    },
+    {
+      "index": "clock",
+      "knn": 0.8339999914169312,
+      "maha": 4311.0,
+      "flag_unlike_training": true
+    },
+    {
+      "index": "motorcycle",
+      "knn": 0.7160000205039978,
+      "maha": 2961.0,
+      "flag_unlike_training": true
+    }
+  ],
+  "fitz_flagged_frac": 0.24634655532359082,
+  "val_flagged_frac": 0.021290751829673986,
+  "ece_val_before": 0.06480623588352621,
+  "ece_val_after": 0.02430950950878268
+}

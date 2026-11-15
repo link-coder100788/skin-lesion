@@ -146,14 +146,14 @@ fair = pd.DataFrame(fair).set_index("group")
 fair.round(3)
 
 # %%
-fig, ax = plt.subplots(figsize=(5.5, 3.2))
+fig, ax = plt.subplots(figsize=(5.5, 3.4))
 xs = np.arange(len(fair))
 cols = ["#2471a3"] + ["#e59866", "#ca6f1e", "#6e2c00"][: len(fair) - 1]
 ax.bar(xs, fair.sensitivity, color=cols, yerr=[fair.sensitivity - fair.ci_lo, fair.ci_hi - fair.sensitivity], capsize=4)
 for x, (_, r) in zip(xs, fair.iterrows()):
-    ax.text(x, 0.03, f"n={r.n_urgent}", ha="center", color="white", fontsize=8)
+    ax.text(x, 0.03, f"n={int(r.n_urgent)}", ha="center", color="white", fontsize=8)
 ax.axhline(0.9, ls="--", c="gray", lw=.8)
-ax.set_xticks(xs, ["HAM10000\ntest"] + [f"Fitz17k\n{g}" for g in fair.index[1:]], fontsize=8)
+ax.set_xticks(xs, ["HAM10000\ntest"] + [f"Fitz17k\ntype {g}" for g in fair.index[1:]], fontsize=8)
 ax.set_ylim(0, 1); ax.set_ylabel("urgent sensitivity @ τ")
 ax.set_title("Same model, same threshold: sensitivity by dataset and skin type", fontsize=9)
 fig.savefig("../figures/fairness_sensitivity.png")

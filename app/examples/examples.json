@@ -1,0 +1,66 @@
+[
+  {
+    "file": "ISIC_0032408.jpg",
+    "dx": "mel",
+    "why": "mel (correctly classified)",
+    "age": 60,
+    "sex": "female",
+    "site": "upper extremity"
+  },
+  {
+    "file": "ISIC_0028583.jpg",
+    "dx": "bcc",
+    "why": "bcc (correctly classified)",
+    "age": 65,
+    "sex": "male",
+    "site": "back"
+  },
+  {
+    "file": "ISIC_0028795.jpg",
+    "dx": "akiec",
+    "why": "akiec (correctly classified)",
+    "age": 50,
+    "sex": "male",
+    "site": "upper extremity"
+  },
+  {
+    "file": "ISIC_0031072.jpg",
+    "dx": "nv",
+    "why": "nv (correctly classified)",
+    "age": 30,
+    "sex": "female",
+    "site": "foot"
+  },
+  {
+    "file": "ISIC_0034126.jpg",
+    "dx": "bkl",
+    "why": "bkl (correctly classified)",
+    "age": 80,
+    "sex": "male",
+    "site": "back"
+  },
+  {
+    "file": "ISIC_0026313.jpg",
+    "dx": "df",
+    "why": "df (correctly classified)",
+    "age": 50,
+    "sex": "male",
+    "site": "lower extremity"
+  },
+  {
+    "file": "ISIC_0027563.jpg",
+    "dx": "vasc",
+    "why": "vasc (correctly classified)",
+    "age": 70,
+    "sex": "male",
+    "site": "lower extremity"
+  },
+  {
+    "file": "ISIC_0033866.jpg",
+    "dx": "akiec",
+    "why": "dark-corner artifact",
+    "age": 80,
+    "sex": "male",
+    "site": "face"
+  }
+]

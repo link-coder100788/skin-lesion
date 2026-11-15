@@ -138,24 +138,29 @@ class TriagePipeline:
 def summary_text(res: TriageResult, region: str, tab_expl=None) -> str:
     """Deterministic plain-English summary built from the largest SHAP region and the
     largest metadata contribution (no LLM, so the same input always gives the same text)."""
+    if res.unlike_training:
+        return ("⚠ This image looks unlike the dermoscopy photos the model was trained on (for "
+                "example a phone photo, a non-skin image, or a very different camera), so the model "
+                "cannot assess it. The heatmaps below are shown for transparency only. If you are "
+                "worried about a spot, see a doctor.")
     toward = "see a doctor" if res.urgent else "lower concern"
     parts = [f"The model's urgent score is {res.p_urgent:.2f}, "
              f"{'above' if res.urgent else 'below'} the decision threshold of {res.tau:.2f}, "
              f"so it leans toward \"{toward}\"."]
     parts.append(f"The image regions that pushed the score up most were in the {region} of the photo.")
     if tab_expl is not None:
-        names, vals = list(tab_expl.feature_names), np.asarray(tab_expl.values)
-        meta = [(n, v) for n, v in zip(names, vals) if n != "image (CNN)"]
-        n, v = max(meta, key=lambda t: abs(t[1]))
-        size = "a small amount" if abs(v) < 0.05 else "a noticeable amount"
-        if abs(v) >= 0.01:
-            parts.append(f"{n.capitalize()} {'raised' if v > 0 else 'lowered'} the score by {size} "
-                         f"({v:+.2f}).")
-        else:
-            parts.append("Age, sex and body site barely changed the score.")
-    if res.unlike_training:
-        parts.append("⚠ This image looks unlike the dermoscopy photos the model was trained on, "
-                     "so the result is unreliable.")
-    elif res.low_confidence:
+        names, vals, shown = (list(tab_expl.feature_names), np.asarray(tab_expl.values),
+                              list(tab_expl.data))
+        # Only talk about inputs the user actually gave; "unknown" ones still appear in the chart.
+        meta = [(n, v) for n, v, d in zip(names, vals, shown) if n != "image (CNN)" and d != "unknown"]
+        if meta:
+            n, v = max(meta, key=lambda t: abs(t[1]))
+            size = "a small amount" if abs(v) < 0.05 else "a noticeable amount"
+            if abs(v) >= 0.01:
+                parts.append(f"{n.capitalize()} {'raised' if v > 0 else 'lowered'} the score by "
+                             f"{size} ({v:+.2f}).")
+            else:
+                parts.append("The age, sex and body site you entered barely changed the score.")
+    if res.low_confidence:
         parts.append("⚠ The model is not confident about this image.")
     return " ".join(parts)

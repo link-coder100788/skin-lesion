@@ -1,0 +1,99 @@
+{
+  "shap_gradcam_agreement_median": 0.0060192845473166535,
+  "group_importance": {
+    "image (CNN)": 0.2204,
+    "age": 0.0276,
+    "sex": 0.003,
+    "body site": 0.0218
+  },
+  "shortcut_by_class": [
+    {
+      "dx": "akiec",
+      "n": 30,
+      "inside": 0.509,
+      "lesion_area": 0.468
+    },
+    {
+      "dx": "bcc",
+      "n": 32,
+      "inside": 0.238,
+      "lesion_area": 0.211
+    },
+    {
+      "dx": "bkl",
+      "n": 61,
+      "inside": 0.362,
+      "lesion_area": 0.312
+    },
+    {
+      "dx": "df",
+      "n": 16,
+      "inside": 0.486,
+      "lesion_area": 0.314
+    },
+    {
+      "dx": "mel",
+      "n": 57,
+      "inside": 0.396,
+      "lesion_area": 0.344
+    },
+    {
+      "dx": "nv",
+      "n": 118,
+      "inside": 0.233,
+      "lesion_area": 0.183
+    },
+    {
+      "dx": "vasc",
+      "n": 19,
+      "inside": 0.094,
+      "lesion_area": 0.084
+    }
+  ],
+  "shortcut_by_group": [
+    {
+      "group": "dark corners",
+      "n": 67,
+      "inside": 0.12,
+      "lesion_area": 0.084,
+      "corner_share": 0.016,
+      "p_urgent": 0.25999999046325684
+    },
+    {
+      "group": "hair",
+      "n": 161,
+      "inside": 0.379,
+      "lesion_area": 0.323,
+      "corner_share": 0.022,
+      "p_urgent": 0.0989999994635582
+    },
+    {
+      "group": "no flag",
+      "n": 105,
+      "inside": 0.265,
+      "lesion_area": 0.249,
+      "corner_share": 0.025,
+      "p_urgent": 0.3709999918937683
+    }
+  ],
+  "deletion_auc": {
+    "SHAP": 0.30522630065679557,
+    "Grad-CAM": 0.20933863744139672,
+    "random": 0.47102639377117156
+  },
+  "stability_median": {
+    "flip": 0.14454925360567977,
+    "noise": 0.049698085696026614,
+    "rerun": 0.9995853892046118
+  },
+  "waterfall_example": {
+    "image_id": "ISIC_0031778",
+    "base": 0.20286838710308075,
+    "values": {
+      "image (CNN)": 0.4212642523149649,
+      "age": 0.007363236198822657,
+      "sex": 0.004489090293645859,
+      "body site": 0.0036622198919455213
+    }
+  }
+}
