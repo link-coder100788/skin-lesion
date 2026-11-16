@@ -22,6 +22,7 @@
 		B090CB6697A9F4F43E443940 /* Config.swift in Sources */ = {isa = PBXBuildFile; fileRef = 607D1831F69ADB46F390805F /* Config.swift */; };
 		B2740A2C84786316496C3A04 /* ResultView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 550E33C8AA02130526D0A453 /* ResultView.swift */; };
 		C1DAD41726A1FB84695E47BB /* VeritasApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = E2FFD384E85FF41D8D8E98B0 /* VeritasApp.swift */; };
+		C673D1A3F61CC2E7D7CC9D0A /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 50E2B203765F86D6F6D18175 /* Assets.xcassets */; };
 		C9BAEECB3572629B10357275 /* LesionNet.mlmodel in Sources */ = {isa = PBXBuildFile; fileRef = 9043FCAF4E4C1E2ACBBF4CE4 /* LesionNet.mlmodel */; };
 		CABC3D42B1FB897E99CD6CEC /* ood_means.bin in Resources */ = {isa = PBXBuildFile; fileRef = 88D8F2980830F347AFD28B9A /* ood_means.bin */; };
 		CC523DC5DED42255098FF830 /* LesionModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = C2203A89BBE3B213F377D125 /* LesionModel.swift */; };
@@ -46,6 +47,7 @@
 		16804E1434F33DB6C1EBFB17 /* ood_precision.bin */ = {isa = PBXFileReference; lastKnownFileType = archive.macbinary; path = ood_precision.bin; sourceTree = "<group>"; };
 		3023F137435C259E0A5E9C90 /* OODGuard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OODGuard.swift; sourceTree = "<group>"; };
 		30D24253EF617845B2929B3E /* ood_bank.bin */ = {isa = PBXFileReference; lastKnownFileType = archive.macbinary; path = ood_bank.bin; sourceTree = "<group>"; };
+		50E2B203765F86D6F6D18175 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		52FD7776385906B66094D476 /* ImagePrep.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImagePrep.swift; sourceTree = "<group>"; };
 		550E33C8AA02130526D0A453 /* ResultView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ResultView.swift; sourceTree = "<group>"; };
 		607D1831F69ADB46F390805F /* Config.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Config.swift; sourceTree = "<group>"; };
@@ -100,6 +102,14 @@
 			path = Veritas/App;
 			sourceTree = "<group>";
 		};
+		9AF6AF6D4F097DC0766352D3 /* Veritas */ = {
+			isa = PBXGroup;
+			children = (
+				50E2B203765F86D6F6D18175 /* Assets.xcassets */,
+			);
+			path = Veritas;
+			sourceTree = "<group>";
+		};
 		ADDD792C14E3B268B88F1B27 /* Pipeline */ = {
 			isa = PBXGroup;
 			children = (
@@ -140,6 +150,7 @@
 				95A107818AB4F1D4107614E7 /* App */,
 				0D11B32B903FEE3DAC8FB37C /* Generated */,
 				ADDD792C14E3B268B88F1B27 /* Pipeline */,
+				9AF6AF6D4F097DC0766352D3 /* Veritas */,
 				B62E943E1341442DB14930EA /* VeritasTests */,
 				D0B720008E5A4B1893CC0B6B /* Products */,
 			);
@@ -227,6 +238,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				C673D1A3F61CC2E7D7CC9D0A /* Assets.xcassets in Resources */,
 				926FE2178F5C779C3592EF4D /* background.json in Resources */,
 				D21E78EB6E85E1AEE21EDF16 /* examples in Resources */,
 				A79D4A870B5FC44B7C944D23 /* fixtures.json in Resources */,

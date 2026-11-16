@@ -15,6 +15,7 @@ targets:
     sources:
       - path: Veritas/App
       - path: Veritas/Pipeline
+      - path: Veritas/Assets.xcassets
       - path: Veritas/Generated/LesionNet.mlmodel
       - path: Veritas/Generated
         excludes: ["LesionNet.mlmodel", "examples"]

@@ -167,6 +167,7 @@ bullets(s, Inches(0.6), Inches(1.9), Inches(6), Inches(4.5), [
     "Toggle to Grad-CAM: do they agree?",
     "The dark-corner artifact example: what the model “looked at”",
     "Upload a cat photo → “cannot assess this image”",
+    "Same pipeline on iPhone: Core ML, fully on device (ios/)",
     "Backup: run locally (python app/app.py) + recorded video",
 ], 20)
 image(s, FIG / "tabular_waterfall_example.png", Inches(7.0), Inches(1.9), w=Inches(5.8))
