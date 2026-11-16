@@ -1,0 +1,55 @@
+# Xcode project spec: `cd ios && xcodegen` regenerates Veritas.xcodeproj.
+name: Veritas
+options:
+  bundleIdPrefix: org.veritas
+  deploymentTarget:
+    iOS: "18.0"
+settings:
+  base:
+    SWIFT_VERSION: "5.0"
+    DEVELOPMENT_TEAM: ""
+targets:
+  Veritas:
+    type: application
+    platform: iOS
+    sources:
+      - path: Veritas/App
+      - path: Veritas/Pipeline
+      - path: Veritas/Generated/LesionNet.mlmodel
+      - path: Veritas/Generated
+        excludes: ["LesionNet.mlmodel", "examples"]
+        buildPhase: resources
+      - path: Veritas/Generated/examples
+        type: folder
+        buildPhase: resources
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: org.veritas.skintriage
+        PRODUCT_NAME: Veritas
+        INFOPLIST_KEY_CFBundleDisplayName: Spot Check
+        INFOPLIST_KEY_NSCameraUsageDescription: "Take a close-up photo of a skin spot. The photo is analysed on this iPhone and never stored."
+        INFOPLIST_KEY_UILaunchScreen_Generation: YES
+        INFOPLIST_KEY_UISupportedInterfaceOrientations: UIInterfaceOrientationPortrait
+        GENERATE_INFOPLIST_FILE: YES
+        TARGETED_DEVICE_FAMILY: "1"
+        CODE_SIGN_STYLE: Automatic
+  VeritasTests:
+    type: bundle.unit-test
+    platform: iOS
+    sources: [VeritasTests]
+    dependencies:
+      - target: Veritas
+    settings:
+      base:
+        GENERATE_INFOPLIST_FILE: YES
+        PRODUCT_BUNDLE_IDENTIFIER: org.veritas.skintriage.tests
+        TEST_HOST: "$(BUILT_PRODUCTS_DIR)/Veritas.app/Veritas"
+        BUNDLE_LOADER: "$(TEST_HOST)"
+schemes:
+  Veritas:
+    build:
+      targets:
+        Veritas: all
+        VeritasTests: [test]
+    test:
+      targets: [VeritasTests]

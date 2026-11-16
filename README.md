@@ -121,6 +121,9 @@ they come from the kernel output.
 **Demo app:** `.venv/bin/python app/app.py` → http://127.0.0.1:7860. The 8 test-set examples
 have precomputed SHAP maps. Uploads compute SHAP live (300 evaluations at 384 px, roughly 10–30 s on an M-series Mac).
 
+**iPhone app:** [ios/](ios/README.md) is a SwiftUI app that runs the same pipeline entirely on device
+(Core ML + Swift), with parity tests against the Python outputs.
+
 **Slides:** `.venv/bin/python slides/build_slides.py` → `slides/pitch.pptx` (all numbers are read from `results/`).
 
 ## Repo layout
@@ -133,6 +136,7 @@ notebooks/  01_eda · 02_baselines · 03_train_cnn · 04_calibrate_fusion · 05_
 kaggle/     build_kernel.py: bundles the repo into self-contained Kaggle kernels (train / sweep / explain)
             compare_sweeps.py: validation-only comparison of sweep runs
 app/        app.py (Gradio) · build_examples.py · examples/
+ios/        SwiftUI iPhone app (Core ML) · export_assets.py · parity tests
 splits/     split.csv (70/15/15, StratifiedGroupKFold by lesion_id, seed 42)
 models/     config.json (T, τ, OOD thresholds) · xgb.json · fusion_background.csv · train_log.json
 results/ figures/ slides/

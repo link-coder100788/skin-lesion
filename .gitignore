@@ -11,3 +11,7 @@ __pycache__/
 .DS_Store
 .gradio/
 slides/preview/
+ios/build/
+ios/Veritas/Generated/
+ios/Veritas.xcodeproj/xcuserdata/
+ios/Veritas.xcodeproj/project.xcworkspace/xcuserdata/
