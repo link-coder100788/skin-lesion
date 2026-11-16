@@ -1,52 +1,52 @@
 {
-  "shap_gradcam_agreement_median": 0.0060192845473166535,
+  "shap_gradcam_agreement_median": 0.3498959521987822,
   "group_importance": {
-    "image (CNN)": 0.2204,
-    "age": 0.0276,
-    "sex": 0.003,
-    "body site": 0.0218
+    "image (CNN)": 0.2519,
+    "age": 0.0131,
+    "sex": 0.0017,
+    "body site": 0.0233
   },
   "shortcut_by_class": [
     {
       "dx": "akiec",
       "n": 30,
-      "inside": 0.509,
+      "inside": 0.647,
       "lesion_area": 0.468
     },
     {
       "dx": "bcc",
       "n": 32,
-      "inside": 0.238,
-      "lesion_area": 0.211
+      "inside": 0.681,
+      "lesion_area": 0.212
     },
     {
       "dx": "bkl",
       "n": 61,
-      "inside": 0.362,
-      "lesion_area": 0.312
+      "inside": 0.476,
+      "lesion_area": 0.311
     },
     {
       "dx": "df",
       "n": 16,
-      "inside": 0.486,
+      "inside": 0.46,
       "lesion_area": 0.314
     },
     {
       "dx": "mel",
       "n": 57,
-      "inside": 0.396,
+      "inside": 0.82,
       "lesion_area": 0.344
     },
     {
       "dx": "nv",
       "n": 118,
-      "inside": 0.233,
+      "inside": 0.496,
       "lesion_area": 0.183
     },
     {
       "dx": "vasc",
       "n": 19,
-      "inside": 0.094,
+      "inside": 0.0,
       "lesion_area": 0.084
     }
   ],
@@ -54,46 +54,46 @@
     {
       "group": "dark corners",
       "n": 67,
-      "inside": 0.12,
+      "inside": 0.413,
       "lesion_area": 0.084,
-      "corner_share": 0.016,
-      "p_urgent": 0.25999999046325684
+      "corner_share": 0.014,
+      "p_urgent": 0.125
     },
     {
       "group": "hair",
       "n": 161,
-      "inside": 0.379,
+      "inside": 0.658,
       "lesion_area": 0.323,
-      "corner_share": 0.022,
-      "p_urgent": 0.0989999994635582
+      "corner_share": 0.006,
+      "p_urgent": 0.026000000536441803
     },
     {
       "group": "no flag",
       "n": 105,
-      "inside": 0.265,
-      "lesion_area": 0.249,
-      "corner_share": 0.025,
-      "p_urgent": 0.3709999918937683
+      "inside": 0.615,
+      "lesion_area": 0.248,
+      "corner_share": 0.008,
+      "p_urgent": 0.04500000178813934
     }
   ],
   "deletion_auc": {
-    "SHAP": 0.30522630065679557,
-    "Grad-CAM": 0.20933863744139672,
-    "random": 0.47102639377117156
+    "SHAP": 0.2600988194346428,
+    "Grad-CAM": 0.34252628386020667,
+    "random": 0.5783040255308151
   },
   "stability_median": {
-    "flip": 0.14454925360567977,
-    "noise": 0.049698085696026614,
-    "rerun": 0.9995853892046118
+    "flip": 0.6941987568400505,
+    "noise": 0.3865549075072482,
+    "rerun": 1.0
   },
   "waterfall_example": {
     "image_id": "ISIC_0031778",
-    "base": 0.20286838710308075,
+    "base": 0.1998778134584427,
     "values": {
-      "image (CNN)": 0.4212642523149649,
-      "age": 0.007363236198822657,
-      "sex": 0.004489090293645859,
-      "body site": 0.0036622198919455213
+      "image (CNN)": -0.14411142965157825,
+      "age": -0.007022716725865999,
+      "sex": -0.003866284464796384,
+      "body site": -0.003135836372772852
     }
   }
 }

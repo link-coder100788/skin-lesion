@@ -277,18 +277,24 @@ bullets(s, Inches(0.6), Inches(4.75), Inches(7.4), Inches(2.3), [
     f"Balanced accuracy {cnn['balanced_accuracy'][0]:.2f}; published HAM10000 models reach ~0.75–0.88. "
     f"Our {MODEL} sits {'inside' if cnn['balanced_accuracy'][0] >= 0.75 else 'just below'} that range.",
     f"Calibration error (ECE) {R['eval']['ece_test_before']:.3f} → {R['eval']['ece_test_after']:.3f} after temperature scaling",
-    "Metadata fusion did not help: a null result, reported as one",
-], 14)
+    f"**Missed target: τ gave {R['calibration_fusion']['val_comparison']['CNN alone']['sensitivity_urgent']:.0%} "
+    f"sensitivity on validation but {cnn['sensitivity_urgent'][0]:.0%} on test. Validation also picked the model "
+    "and epoch, so it was optimistic. Fix: a separate calibration split.",
+    "Metadata fusion did not help on validation, so it is not deployed",
+], 13)
 image(s, FIG / "confusion_matrix.png", Inches(8.3), Inches(1.75), h=Inches(4.0))
 text(s, Inches(8.3), Inches(5.85), Inches(4.6), Inches(1),
      "Most confusions: mel ↔ nv and bkl ↔ mel, as in the literature.", 13, color=MUTED)
-notes(s, "95% CIs: 1,000 bootstrap resamples over test images. Test set was scored once, after every choice was fixed on validation.")
+notes(s, "95% CIs: 1,000 bootstrap resamples over test images. Test set was scored once, after every choice was fixed on validation. "
+         "We did not move τ after seeing the test result: that would turn the test set into a second validation set. "
+         f"(Fusion happened to land at {ev['CNN + metadata (XGBoost)']['sensitivity_urgent'][0]:.2f} test sensitivity; "
+         "switching to it now would also be choosing on test.)")
 
 # 7 · What SHAP taught us -------------------------------------------------------------------
 hunt = {r["group"]: r for r in ex["shortcut_by_group"]}
 byc = {r["dx"]: r for r in ex["shortcut_by_class"]}
 CORNER_AREA = 4 * int(0.1 * SIZE) ** 2 / SIZE ** 2  # the four 10% corner patches used in notebook 05
-s = new_slide("We checked the explanations: faithful, but fragile", "What SHAP taught us")
+s = new_slide("We checked the explanations: faithful, moderately stable", "What SHAP taught us")
 del_auc = ex["deletion_auc"]
 image(s, FIG / "shortcut_dark_corners.png", Inches(0.6), Inches(1.75), w=Inches(7.6))
 image(s, FIG / "deletion_curve.png", Inches(8.5), Inches(1.65), w=Inches(4.4))
@@ -298,15 +304,16 @@ bullets(s, Inches(0.6), Inches(4.85), Inches(12.3), Inches(2.2), [
     f"**Shortcut hunt: dark vignette corners are in {dr['mel']:.0%} of melanomas but {dr['nv']:.0%} of moles, a "
     f"possible shortcut. SHAP puts only {dc.get('corner_share', float('nan')):.1%} of its positive mass in the corners "
     f"(they cover {CORNER_AREA:.1%} of the image), so there is no sign the model uses them.",
-    f"Faithful: deleting the top SHAP pixels lowers the urgent score faster than random (deletion AUC "
-    f"{del_auc['SHAP']:.2f} vs {del_auc['random']:.2f}), but Grad-CAM does even better ({del_auc['Grad-CAM']:.2f}).",
-    f"Fragile: the same image always gives the same map, but a mirror flip (rank corr. "
-    f"{ex['stability_median']['flip']:.2f}) or faint noise ({ex['stability_median']['noise']:.2f}) changes it a lot, "
-    f"and SHAP and Grad-CAM barely agree ({ex['shap_gradcam_agreement_median']:.2f}). Read the maps as coarse hints.",
+    f"Faithful: deleting the top SHAP pixels lowers the urgent score much faster than random (deletion AUC "
+    f"{del_auc['SHAP']:.2f} vs {del_auc['random']:.2f}; Grad-CAM {del_auc['Grad-CAM']:.2f}). For melanoma, "
+    f"{byc['mel']['inside']:.0%} of positive SHAP mass is inside the lesion, which covers {byc['mel']['lesion_area']:.0%} of the image.",
+    f"Moderately stable: a mirror flip keeps the map similar (rank corr. {ex['stability_median']['flip']:.2f}), faint "
+    f"noise less so ({ex['stability_median']['noise']:.2f}); SHAP and Grad-CAM agree moderately "
+    f"({ex['shap_gradcam_agreement_median']:.2f}). Steadier than the EfficientNet-B0 maps, but still hints, not ground truth.",
 ], 14, space=4)
-notes(s, "Melanoma: median %.0f%% of positive SHAP mass inside the lesion vs %.0f%% lesion area: only modestly lesion-focused. "
-         "Winkler et al. 2019 (JAMA Dermatology) showed ink markings fooled a commercial CNN; that is why we looked."
-      % (100 * byc["mel"]["inside"], 100 * byc["mel"]["lesion_area"]))
+notes(s, "The first model (EfficientNet-B0, 224 px) gave much less stable maps: flip 0.14, noise 0.05, SHAP vs Grad-CAM 0.01, "
+         "and only 40%% of melanoma SHAP mass inside the lesion. Winkler et al. 2019 (JAMA Dermatology) showed ink "
+         "markings fooled a commercial CNN; that is why we looked.")
 
 # 8 · Limits and ethics ---------------------------------------------------------------------
 s = new_slide("Where the model is likely to be wrong", "Limits and ethics")
@@ -316,19 +323,22 @@ ham_s = fair["HAM10000 test (dermoscopy)"]["sensitivity"]
 fz_s = [fair[g]["sensitivity"] for g in ("I–II", "III–IV", "V–VI") if g in fair]
 cf = R["calibration_fusion"]
 fresh = cf.get("ood_fresh", [])
+fz_sp = [fair[g]["specificity"] for g in ("I–II", "III–IV", "V–VI") if g in fair]
+missed = [r["index"] for r in cf["ood_nonskin"] + fresh if not r["flag_unlike_training"]]
 bullets(s, Inches(0.6), Inches(5.35), Inches(12.3), Inches(1.7), [
-    f"On clinical photos (Fitzpatrick17k), sensitivity falls from {ham_s:.0%} to {min(fz_s):.0%}–{max(fz_s):.0%} for "
-    "every skin type. The photo type (clinical vs. dermoscopy) is the bigger shift, and HAM10000 has almost no "
-    "dark skin, so the skin-tone gap cannot be ruled out. Fix: diverse, dermoscopic data.",
+    f"On clinical photos (Fitzpatrick17k), sensitivity falls from {ham_s:.0%} to {min(fz_s):.0%}–{max(fz_s):.0%}, and "
+    f"specificity drops with darker skin ({fz_sp[0]:.2f} for types I–II → {fz_sp[-1]:.2f} for V–VI): more false alarms. "
+    "Photo type and skin tone are mixed here; HAM10000 has almost no dark skin. Fix: diverse, dermoscopic data.",
     f"OOD guard flags {sum(r['flag_unlike_training'] for r in cf['ood_nonskin'])}/{len(cf['ood_nonskin'])} non-skin "
-    f"test images and {sum(r['flag_unlike_training'] for r in fresh)}/{len(fresh)} unseen ones (it missed a retina photo). "
-    "The app never says “you are fine”.",
+    f"test images and {sum(r['flag_unlike_training'] for r in fresh)}/{len(fresh)} unseen ones (missed: "
+    f"{', '.join(missed)}). The app never says “you are fine”.",
 ], 14, space=4)
 notes(s, "Two causes are mixed in the Fitzpatrick result: skin tone and clinical-vs-dermoscopy. We cannot separate them with this data.")
 
 # 9 · Next steps ----------------------------------------------------------------------------
 s = new_slide("Next steps", "Where this goes")
 bullets(s, Inches(0.6), Inches(2.0), Inches(12), Inches(4.5), [
+    "Separate calibration split for τ, so the 90% sensitivity target holds on new data",
     "Diverse data: dermoscopy across all skin types (e.g. DDI), then re-run the fairness audit",
     "Shortcut-proofing: crop to the lesion, artifact augmentation, retrain, re-run the shortcut hunt",
     "Clinician feedback on the explanations: do dermatologists find the maps useful?",

@@ -3,99 +3,212 @@
     {
       "epoch": 0,
       "phase": "head",
-      "train_loss": 2.7940837407330856,
-      "val_bacc": 0.29216271763877694
+      "train_loss": 2.122240404287974,
+      "val_bacc": 0.14285714285714285
     },
     {
       "epoch": 1,
       "phase": "head",
-      "train_loss": 2.0852497794212552,
-      "val_bacc": 0.3617221497346598
+      "train_loss": 2.0985257649558715,
+      "val_bacc": 0.14285714285714285
     },
     {
       "epoch": 2,
       "phase": "full",
-      "train_loss": 1.702590778880163,
-      "val_bacc": 0.47273062738480215
+      "train_loss": 1.99369474628876,
+      "val_bacc": 0.20637428322895554
     },
     {
       "epoch": 3,
       "phase": "full",
-      "train_loss": 1.1168437654818963,
-      "val_bacc": 0.5765920029220776
+      "train_loss": 1.803078866210477,
+      "val_bacc": 0.5073608951186174
     },
     {
       "epoch": 4,
       "phase": "full",
-      "train_loss": 0.8062658545074113,
-      "val_bacc": 0.5932696652515432
+      "train_loss": 1.6547289230357642,
+      "val_bacc": 0.6842817127431644
     },
     {
       "epoch": 5,
       "phase": "full",
-      "train_loss": 0.6443676262273701,
-      "val_bacc": 0.6073985718629389
+      "train_loss": 1.5510024555113124,
+      "val_bacc": 0.6576973956604606
     },
     {
       "epoch": 6,
       "phase": "full",
-      "train_loss": 0.5359348329382205,
-      "val_bacc": 0.6368385500060167
+      "train_loss": 1.4787004350245685,
+      "val_bacc": 0.7684375502825219
     },
     {
       "epoch": 7,
       "phase": "full",
-      "train_loss": 0.4660863196904506,
-      "val_bacc": 0.6360394464866428
+      "train_loss": 1.4178918853573415,
+      "val_bacc": 0.7543971884592534
     },
     {
       "epoch": 8,
       "phase": "full",
-      "train_loss": 0.4010523147539261,
-      "val_bacc": 0.6757136129558395
+      "train_loss": 1.3791891442633224,
+      "val_bacc": 0.6971057933617174
     },
     {
       "epoch": 9,
       "phase": "full",
-      "train_loss": 0.3645194481819048,
-      "val_bacc": 0.6610355682625677
+      "train_loss": 1.3348143532358367,
+      "val_bacc": 0.7964602896068834
     },
     {
       "epoch": 10,
       "phase": "full",
-      "train_loss": 0.33346879468598495,
-      "val_bacc": 0.6564019394028667
+      "train_loss": 1.3027029719160892,
+      "val_bacc": 0.7830976613341291
     },
     {
       "epoch": 11,
       "phase": "full",
-      "train_loss": 0.32352852479580346,
-      "val_bacc": 0.6542715733722534
+      "train_loss": 1.2729114504723713,
+      "val_bacc": 0.8012330842171762
     },
     {
       "epoch": 12,
       "phase": "full",
-      "train_loss": 0.3131260502775875,
-      "val_bacc": 0.6585427562236588
+      "train_loss": 1.2371099687170708,
+      "val_bacc": 0.7997773449509162
     },
     {
       "epoch": 13,
       "phase": "full",
-      "train_loss": 0.29515072573489004,
-      "val_bacc": 0.6574355263732939
+      "train_loss": 1.212569872366971,
+      "val_bacc": 0.8107018480277036
+    },
+    {
+      "epoch": 14,
+      "phase": "full",
+      "train_loss": 1.1887226889188263,
+      "val_bacc": 0.79215639099366
+    },
+    {
+      "epoch": 15,
+      "phase": "full",
+      "train_loss": 1.1645510784168354,
+      "val_bacc": 0.8027791686472305
+    },
+    {
+      "epoch": 16,
+      "phase": "full",
+      "train_loss": 1.1488662750899106,
+      "val_bacc": 0.8318461005777381
+    },
+    {
+      "epoch": 17,
+      "phase": "full",
+      "train_loss": 1.1310804979554538,
+      "val_bacc": 0.8256339810197388
+    },
+    {
+      "epoch": 18,
+      "phase": "full",
+      "train_loss": 1.1082376923369266,
+      "val_bacc": 0.8164741820564542
+    },
+    {
+      "epoch": 19,
+      "phase": "full",
+      "train_loss": 1.0929416272489505,
+      "val_bacc": 0.7916477701039862
+    },
+    {
+      "epoch": 20,
+      "phase": "full",
+      "train_loss": 1.0798511669553559,
+      "val_bacc": 0.8125894338291556
+    },
+    {
+      "epoch": 21,
+      "phase": "full",
+      "train_loss": 1.073722693769411,
+      "val_bacc": 0.8297532321525368
+    },
+    {
+      "epoch": 22,
+      "phase": "full",
+      "train_loss": 1.0612162629078175,
+      "val_bacc": 0.8168921444373722
+    },
+    {
+      "epoch": 23,
+      "phase": "full",
+      "train_loss": 1.0493746293687272,
+      "val_bacc": 0.8172009179002674
+    },
+    {
+      "epoch": 24,
+      "phase": "full",
+      "train_loss": 1.0395349312102657,
+      "val_bacc": 0.8112413891424509
+    },
+    {
+      "epoch": 25,
+      "phase": "full",
+      "train_loss": 1.032298576215218,
+      "val_bacc": 0.8228812293377057
+    },
+    {
+      "epoch": 26,
+      "phase": "full",
+      "train_loss": 1.0294819275538127,
+      "val_bacc": 0.8210091609752166
+    },
+    {
+      "epoch": 27,
+      "phase": "full",
+      "train_loss": 1.0271478334720108,
+      "val_bacc": 0.8321853444433627
+    },
+    {
+      "epoch": 28,
+      "phase": "full",
+      "train_loss": 1.0218245870080487,
+      "val_bacc": 0.8222897423830894
+    },
+    {
+      "epoch": 29,
+      "phase": "full",
+      "train_loss": 1.0181467014140095,
+      "val_bacc": 0.821412048135494
+    },
+    {
+      "epoch": 30,
+      "phase": "full",
+      "train_loss": 1.021512189987062,
+      "val_bacc": 0.8262181431285225
+    },
+    {
+      "epoch": 31,
+      "phase": "full",
+      "train_loss": 1.0180039679867097,
+      "val_bacc": 0.8238610881644931
     }
   ],
-  "best_val_bacc": 0.6757136129558395,
+  "best_val_bacc": 0.8321853444433627,
   "args": {
     "ham": "/kaggle/input/datasets/kmader/skin-cancer-mnist-ham10000",
     "split": "splits/split.csv",
     "fitz": "/kaggle/input/datasets/asosenge/fitzpatrick17k",
-    "out": "/kaggle/working",
+    "out": "/kaggle/working/fastvit_t12_384",
     "head_epochs": 2,
-    "epochs": 12,
+    "epochs": 30,
     "batch_size": 64,
     "limit": 0,
-    "workers": 4
+    "workers": 4,
+    "backbone": "fastvit_t12.apple_dist_in1k",
+    "label_smoothing": 0.1,
+    "drop_path": 0.2,
+    "img_size": 384,
+    "isic19": "/kaggle/input/datasets/cdeotte/jpeg-isic2019-512x512"
   },
   "device": "cuda",
   "torch": "2.11.0+cu130"

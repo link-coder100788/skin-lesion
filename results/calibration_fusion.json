@@ -2,193 +2,193 @@
   "val_comparison": {
     "CNN alone": {
       "sensitivity_urgent": 0.901,
-      "specificity_urgent": 0.7,
-      "auroc_urgent": 0.897,
-      "balanced_accuracy": 0.676,
-      "ece": 0.024
+      "specificity_urgent": 0.888,
+      "auroc_urgent": 0.948,
+      "balanced_accuracy": 0.832,
+      "ece": 0.047
     },
     "CNN + metadata (OOF)": {
       "sensitivity_urgent": 0.901,
-      "specificity_urgent": 0.706,
-      "auroc_urgent": 0.892,
-      "balanced_accuracy": 0.595,
-      "ece": 0.046
+      "specificity_urgent": 0.849,
+      "auroc_urgent": 0.957,
+      "balanced_accuracy": 0.783,
+      "ece": 0.035
     }
   },
   "ood_nonskin": [
     {
       "index": "cat",
-      "maha": 1637.0,
-      "knn": 0.7229999899864197,
+      "maha": 12235.0,
+      "knn": 0.3869999945163727,
       "flag_unlike_training": true,
-      "max_softmax": 0.6700000166893005,
+      "max_softmax": 0.800000011920929,
       "flag_low_conf": false,
       "would_triage": "urgent"
     },
     {
       "index": "astronaut",
-      "maha": 2015.0,
-      "knn": 0.703000009059906,
+      "maha": 13146.0,
+      "knn": 0.4339999854564667,
       "flag_unlike_training": true,
-      "max_softmax": 0.3199999928474426,
-      "flag_low_conf": true,
-      "would_triage": "urgent"
+      "max_softmax": 0.8799999952316284,
+      "flag_low_conf": false,
+      "would_triage": "benign"
     },
     {
       "index": "coffee",
-      "maha": 2034.0,
-      "knn": 0.7300000190734863,
+      "maha": 11967.0,
+      "knn": 0.28600001335144043,
       "flag_unlike_training": true,
-      "max_softmax": 0.6100000143051147,
+      "max_softmax": 0.75,
       "flag_low_conf": false,
       "would_triage": "benign"
     },
     {
       "index": "rocket",
-      "maha": 1870.0,
-      "knn": 0.6959999799728394,
+      "maha": 8014.0,
+      "knn": 0.3869999945163727,
       "flag_unlike_training": true,
-      "max_softmax": 0.41999998688697815,
+      "max_softmax": 0.8500000238418579,
+      "flag_low_conf": false,
+      "would_triage": "urgent"
+    },
+    {
+      "index": "bricks",
+      "maha": 15432.0,
+      "knn": 0.4339999854564667,
+      "flag_unlike_training": true,
+      "max_softmax": 0.49000000953674316,
       "flag_low_conf": true,
       "would_triage": "benign"
     },
     {
-      "index": "bricks",
-      "maha": 3275.0,
-      "knn": 0.8339999914169312,
-      "flag_unlike_training": true,
-      "max_softmax": 0.6299999952316284,
-      "flag_low_conf": false,
-      "would_triage": "benign"
-    },
-    {
       "index": "camera man",
-      "maha": 2733.0,
-      "knn": 0.7039999961853027,
-      "flag_unlike_training": true,
-      "max_softmax": 0.7400000095367432,
+      "maha": 6036.0,
+      "knn": 0.32100000977516174,
+      "flag_unlike_training": false,
+      "max_softmax": 0.8899999856948853,
       "flag_low_conf": false,
       "would_triage": "benign"
     },
     {
       "index": "grass",
-      "maha": 2012.0,
-      "knn": 0.7139999866485596,
+      "maha": 6845.0,
+      "knn": 0.39800000190734863,
       "flag_unlike_training": true,
-      "max_softmax": 0.5299999713897705,
+      "max_softmax": 0.9200000166893005,
       "flag_low_conf": false,
       "would_triage": "benign"
     },
     {
       "index": "hubble",
-      "maha": 2177.0,
-      "knn": 0.7149999737739563,
-      "flag_unlike_training": true,
-      "max_softmax": 0.6499999761581421,
+      "maha": 6922.0,
+      "knn": 0.29899999499320984,
+      "flag_unlike_training": false,
+      "max_softmax": 0.9100000262260437,
       "flag_low_conf": false,
-      "would_triage": "urgent"
+      "would_triage": "benign"
     },
     {
       "index": "blank wall",
-      "maha": 29532172.0,
-      "knn": 0.6119999885559082,
+      "maha": 14436.0,
+      "knn": 0.3330000042915344,
       "flag_unlike_training": true,
-      "max_softmax": 1.0,
+      "max_softmax": 0.8399999737739563,
       "flag_low_conf": false,
       "would_triage": "benign"
     },
     {
       "index": "noise",
-      "maha": 1615.0,
-      "knn": 0.7639999985694885,
+      "maha": 18132579.0,
+      "knn": 0.6240000128746033,
       "flag_unlike_training": true,
-      "max_softmax": 0.36000001430511475,
-      "flag_low_conf": true,
+      "max_softmax": 0.8700000047683716,
+      "flag_low_conf": false,
       "would_triage": "benign"
     },
     {
       "index": "flat skin tone",
-      "maha": 7339673586.0,
-      "knn": 0.6600000262260437,
+      "maha": 13035.0,
+      "knn": 0.4449999928474426,
       "flag_unlike_training": true,
-      "max_softmax": 1.0,
-      "flag_low_conf": false,
-      "would_triage": "benign"
+      "max_softmax": 0.6200000047683716,
+      "flag_low_conf": true,
+      "would_triage": "urgent"
     },
     {
       "index": "black",
-      "maha": 1352.0,
-      "knn": 0.765999972820282,
+      "maha": 6801.0,
+      "knn": 0.621999979019165,
       "flag_unlike_training": true,
-      "max_softmax": 0.6100000143051147,
-      "flag_low_conf": false,
-      "would_triage": "benign"
+      "max_softmax": 0.6399999856948853,
+      "flag_low_conf": true,
+      "would_triage": "urgent"
     }
   ],
   "ood_fresh": [
     {
       "index": "coins",
-      "knn": 0.7390000224113464,
-      "maha": 4167.0,
+      "knn": 0.4699999988079071,
+      "maha": 11067.0,
       "flag_unlike_training": true
     },
     {
       "index": "moon",
-      "knn": 0.7059999704360962,
-      "maha": 2045.0,
+      "knn": 0.3479999899864197,
+      "maha": 7672.0,
       "flag_unlike_training": true
     },
     {
       "index": "page of text",
-      "knn": 0.7379999756813049,
-      "maha": 1571.0,
+      "knn": 0.4390000104904175,
+      "maha": 13846.0,
       "flag_unlike_training": true
     },
     {
       "index": "horse",
-      "knn": 0.8659999966621399,
-      "maha": 2310.0,
+      "knn": 0.49799999594688416,
+      "maha": 120503.0,
       "flag_unlike_training": true
     },
     {
       "index": "histology (IHC)",
-      "knn": 0.7070000171661377,
-      "maha": 2355.0,
-      "flag_unlike_training": true
-    },
-    {
-      "index": "retina",
-      "knn": 0.6489999890327454,
-      "maha": 2697.0,
+      "knn": 0.2759999930858612,
+      "maha": 3517.0,
       "flag_unlike_training": false
     },
     {
+      "index": "retina",
+      "knn": 0.38600000739097595,
+      "maha": 14423.0,
+      "flag_unlike_training": true
+    },
+    {
       "index": "colour wheel",
-      "knn": 0.7440000176429749,
-      "maha": 2742.0,
+      "knn": 0.3569999933242798,
+      "maha": 17100.0,
       "flag_unlike_training": true
     },
     {
       "index": "logo",
-      "knn": 0.6759999990463257,
-      "maha": 4864.0,
+      "knn": 0.38100001215934753,
+      "maha": 14487.0,
       "flag_unlike_training": true
     },
     {
       "index": "clock",
-      "knn": 0.8339999914169312,
-      "maha": 4311.0,
+      "knn": 0.3659999966621399,
+      "maha": 12361.0,
       "flag_unlike_training": true
     },
     {
       "index": "motorcycle",
-      "knn": 0.7160000205039978,
-      "maha": 2961.0,
+      "knn": 0.43299999833106995,
+      "maha": 8321.0,
       "flag_unlike_training": true
     }
   ],
-  "fitz_flagged_frac": 0.24634655532359082,
-  "val_flagged_frac": 0.021290751829673986,
-  "ece_val_before": 0.06480623588352621,
-  "ece_val_after": 0.02430950950878268
+  "fitz_flagged_frac": 0.38987473903966596,
+  "val_flagged_frac": 0.014637391882900865,
+  "ece_val_before": 0.14767674462286062,
+  "ece_val_after": 0.04693679225024428
 }
