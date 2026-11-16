@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Spot Check walkthrough</title>
+<link rel="icon" href="app_icon.png">
+<style>
+  :root { --bg: #f6f7f9; --fg: #1f2328; --muted: #57606a; --link: #0b5cad; }
+  @media (prefers-color-scheme: dark) { :root { --bg: #0d1117; --fg: #e6edf3; --muted: #8b949e; --link: #58a6ff; } }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--fg);
+         font: 16px/1.5 -apple-system, "Helvetica Neue", Arial, sans-serif;
+         display: flex; flex-direction: column; align-items: center; padding: 24px 16px; gap: 12px; }
+  header { display: flex; align-items: center; gap: 12px; }
+  header img { width: 44px; height: 44px; border-radius: 10px; }
+  h1 { font-size: 20px; margin: 0; }
+  video { max-height: 80vh; max-width: 100%; border-radius: 18px; background: #000;
+          box-shadow: 0 8px 30px rgba(0, 0, 0, .25); }
+  p { margin: 0; color: var(--muted); font-size: 14px; text-align: center; max-width: 520px; }
+  a { color: var(--link); }
+</style>
+</head>
+<body>
+<header><img src="app_icon.png" alt=""><h1>Spot Check: iPhone walkthrough</h1></header>
+<video src="walkthrough.mp4" controls playsinline preload="metadata"></video>
+<p>71 s, recorded on an iPhone. Student research demo, not a medical device and not a diagnosis.</p>
+<p><a href="https://github.com/link-coder100788/skin-lesion">Back to the project on GitHub</a></p>
+</body>
+</html>
