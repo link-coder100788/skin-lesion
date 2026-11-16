@@ -25,8 +25,9 @@ iPhone app that does everything on the phone.
 - **Fairness:** on clinical photos, false alarms rise steeply with darker skin (specificity 0.63 → 0.36).
 - **Safety:** an out-of-distribution guard turned away 19 of 22 non-skin images. The app never says
   "you are fine".
-- **On device:** the iPhone app runs the CNN in Core ML. The OOD guard, the metadata model and the
-  image SHAP are ported to Swift, and the app is tested for parity against the Python pipeline.
+- **On device:** the iPhone app runs the CNN in Core ML, with a hand-written gradient so that Grad-CAM
+  works live. The OOD guard, the metadata model and the image SHAP are ported to Swift, and the app
+  is tested for parity against the Python pipeline.
 
 <p align="center"><img src="docs/app_screens.png" alt="iPhone app: home screen, melanoma result with SHAP map, probability and metadata charts, and a non-skin photo refused"></p>
 <p align="center"><sub>The iPhone app: home · a melanoma flagged with its SHAP map · class probabilities and metadata waterfall · a cat photo refused as "cannot assess".</sub></p>
@@ -216,11 +217,12 @@ A native SwiftUI app (iOS 18+). **No server, no Python: photos never leave the p
 | Calibration, τ, triage text, OOD guard | Swift + Accelerate (BLAS kNN over 7,009 embeddings, Mahalanobis) |
 | XGBoost fusion + exact metadata SHAP | A small Swift tree evaluator (1,400 trees) |
 | Image SHAP | Our Swift port of the Owen-value partition explainer with the same blur masker (300 evaluations) |
-| Grad-CAM | Precomputed for the bundled examples. Core ML can't compute gradients on device, so live photos get SHAP only |
+| Grad-CAM | Live, inside the Core ML model. Core ML can't backpropagate, so we wrote the gradient of p_urgent back to the last feature stage by hand as forward ops (through the reparameterised MobileOne conv, squeeze-excite, GELU, pooling and classifier). It matches autograd to 5e-6 relative error |
 
 **Parity tests** (`ios/VeritasTests`, run on the simulator) check the phone against the Python pipeline:
 - the triage and OOD decisions are identical, and p_urgent is within 0.02, on all 18 fixtures (9 images × with/without metadata);
 - the XGBoost probabilities and metadata SHAP match to within 1e-4;
+- Grad-CAM matches pytorch-grad-cam on every example (correlation 1.000);
 - the image SHAP map sums to f(image) − f(blurred) (Owen efficiency) and agrees with Python's 2,000-evaluation map (r = 0.64 on a 16×16 grid);
 - the non-skin photo is refused.
 

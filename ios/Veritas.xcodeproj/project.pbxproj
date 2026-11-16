@@ -52,7 +52,7 @@
 		550E33C8AA02130526D0A453 /* ResultView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ResultView.swift; sourceTree = "<group>"; };
 		607D1831F69ADB46F390805F /* Config.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Config.swift; sourceTree = "<group>"; };
 		6C54FB40D5E54035172AC436 /* VeritasTests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = VeritasTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
-		732BA11CD00B3854DE70F4A9 /* Veritas.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = Veritas.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		732BA11CD00B3854DE70F4A9 /* Veritas.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Veritas.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		73B8177C6A36142F971B9841 /* CheckView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CheckView.swift; sourceTree = "<group>"; };
 		853F116D0A507B7D76895B22 /* background.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = background.json; sourceTree = "<group>"; };
 		88D8F2980830F347AFD28B9A /* ood_means.bin */ = {isa = PBXFileReference; lastKnownFileType = archive.macbinary; path = ood_means.bin; sourceTree = "<group>"; };
@@ -205,7 +205,6 @@
 				LastUpgradeCheck = 1430;
 				TargetAttributes = {
 					97D942B85E9E69D1440F4B67 = {
-						DevelopmentTeam = "";
 						ProvisioningStyle = Automatic;
 					};
 					F85D6F91ABD1B453C2E4BC1D = {
@@ -299,6 +298,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				CODE_SIGN_STYLE = Automatic;
+				DEVELOPMENT_TEAM = N4ZN7V3K86;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_CFBundleDisplayName = "Spot Check";
 				INFOPLIST_KEY_NSCameraUsageDescription = "Take a close-up photo of a skin spot. The photo is analysed on this iPhone and never stored.";
@@ -476,6 +476,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				CODE_SIGN_STYLE = Automatic;
+				DEVELOPMENT_TEAM = N4ZN7V3K86;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_CFBundleDisplayName = "Spot Check";
 				INFOPLIST_KEY_NSCameraUsageDescription = "Take a close-up photo of a skin spot. The photo is analysed on this iPhone and never stored.";

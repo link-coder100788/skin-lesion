@@ -12,7 +12,8 @@ struct PreparedImage {
     }
 }
 
-/// FastViT-T12 converted to Core ML: [0, 1] image -> 7 logits + 1024-d embedding.
+/// FastViT-T12 converted to Core ML: [0, 1] image -> 7 logits, 1024-d embedding, and the
+/// Grad-CAM map for p_urgent on the last feature stage (12 x 12, before ReLU).
 final class LesionModel: @unchecked Sendable {
     private let model: MLModel
     let size: Int
@@ -36,10 +37,11 @@ final class LesionModel: @unchecked Sendable {
         (0..<arr.count).map { arr[$0].floatValue }
     }
 
-    func predict(_ image: PreparedImage) throws -> (logits: [Float], embedding: [Float]) {
+    func predict(_ image: PreparedImage) throws -> (logits: [Float], embedding: [Float], cam: [Float]) {
         let out = try model.prediction(from: input(image.chw))
         return (Self.floats(out.featureValue(for: "logits")!.multiArrayValue!),
-                Self.floats(out.featureValue(for: "embedding")!.multiArrayValue!))
+                Self.floats(out.featureValue(for: "embedding")!.multiArrayValue!),
+                Self.floats(out.featureValue(for: "cam")!.multiArrayValue!))
     }
 
     /// Logits for many images at once (used by image SHAP).

@@ -3,15 +3,18 @@
     .venv/bin/python ios/export_assets.py
 
 Writes ios/Veritas/Generated/ (git-ignored, like models/cnn.pt):
-  LesionNet.mlmodel     FastViT-T12 @ 384 px: [0,1] NCHW image -> logits (7) + embedding (1024)
+  LesionNet.mlmodel     FastViT-T12 @ 384 px: [0,1] NCHW image -> logits (7), embedding (1024),
+                        and the Grad-CAM map for p_urgent (12 x 12, hand-written gradient)
   pipeline.json         T, tau, OOD thresholds, classes, sites, SHAP settings, test metrics
   xgb.json              the fusion model's trees, flattened for a small Swift evaluator
   background.json       fusion background rows (for the grouped metadata SHAP)
   ood_*.bin             little-endian float arrays: class means, precision, train embedding bank
-  examples/             the 8 demo images, already resized to 384 px, plus their SHAP / Grad-CAM maps,
+  examples/             the 8 demo images, already resized to 384 px, plus their precomputed SHAP maps
+                        (and Grad-CAM maps, as test references),
                         and one non-skin photo (scikit-image's cat) to show the OOD guard
   fixtures.json         Python pipeline outputs on the examples, for the Swift parity tests
 """
+import copy
 import json
 import sys
 from pathlib import Path
@@ -35,22 +38,107 @@ EXAMPLES = ROOT / "app/examples"
 
 
 class Wrapped(torch.nn.Module):
-    """ImageNet normalisation baked in, so the app feeds plain [0, 1] RGB."""
+    """FastViT-T12 for the app: [0, 1] RGB in (ImageNet normalisation baked in), and out come
+    logits, the pooled embedding, and the Grad-CAM map for p_urgent.
 
-    def __init__(self, model):
+    Core ML can't backpropagate, so the Grad-CAM gradient is written out by hand as forward
+    ops. It runs from p_urgent back to the last stage's feature map A (512 x 12 x 12, the layer
+    src/explain.py hooks), through the head that sits after A: final_conv (grouped 3x3 conv, here
+    reparameterised to a single conv) -> squeeze-excite -> GELU -> average pool -> linear.
+    The result is checked against autograd and pytorch-grad-cam in `check_gradcam`.
+    """
+
+    def __init__(self, model, T: float):
         super().__init__()
         self.model = model
+        self.T = T
         self.register_buffer("mean", torch.tensor([0.485, 0.456, 0.406]).view(1, 3, 1, 1))
         self.register_buffer("std", torch.tensor([0.229, 0.224, 0.225]).view(1, 3, 1, 1))
+        urgent = torch.zeros(1, len(CLASSES))
+        urgent[0, URGENT_IDX] = 1
+        self.register_buffer("urgent", urgent)
+        fc = copy.deepcopy(model.final_conv)
+        fc.reparameterize()
+        self.conv, self.se = fc.reparam_conv, fc.se
+
+    def features(self, x):
+        a = self.model.stem((x - self.mean) / self.std)
+        return self.model.stages(a)
+
+    def head(self, a):
+        """final_conv + pooling + classifier, keeping the intermediates the gradient needs."""
+        z = self.conv(a)
+        m = z.mean((2, 3), keepdim=True)
+        v1 = self.se.fc1(m)
+        s = torch.sigmoid(self.se.fc2(torch.relu(v1)))
+        u = z * s
+        f = torch.nn.functional.gelu(u).mean((2, 3))
+        return self.model.get_classifier()(f), f, (z, v1, s, u)
 
     def forward(self, x):
-        feats = self.model.forward_head(self.model.forward_features((x - self.mean) / self.std), pre_logits=True)
-        return self.model.get_classifier()(feats), feats
+        a = self.features(x)
+        logits, f, (z, v1, s, u) = self.head(a)
+        # d p_urgent / d logits for p = softmax(logits / T)
+        p = torch.softmax(logits / self.T, dim=1)
+        y = (p * self.urgent).sum(1, keepdim=True)
+        g = p * (self.urgent - y) / self.T                                   # (1, 7)
+        g = g @ self.model.get_classifier().weight                           # d/d f      (1, 1024)
+        hw = u.shape[2] * u.shape[3]
+        phi = torch.exp(-0.5 * u * u) * 0.3989422804014327                  # standard normal pdf
+        gelu_grad = 0.5 * (1 + torch.erf(u * 0.7071067811865476)) + u * phi
+        g_u = g[:, :, None, None] / hw * gelu_grad                           # d/d u
+        g_s = (g_u * z).sum((2, 3), keepdim=True)                            # through the SE gate
+        g_v2 = g_s * s * (1 - s)
+        g_r = torch.nn.functional.conv2d(g_v2, self.se.fc2.weight.transpose(0, 1))
+        g_v1 = g_r * (v1 > 0).float()
+        g_m = torch.nn.functional.conv2d(g_v1, self.se.fc1.weight.transpose(0, 1))
+        g_z = g_u * s + g_m / hw
+        g_a = torch.nn.functional.conv_transpose2d(g_z, self.conv.weight, padding=1, groups=self.conv.groups)
+        cam = (g_a.mean((2, 3), keepdim=True) * a).sum(1)                   # Grad-CAM, before ReLU
+        return logits, f, cam
+
+
+def check_gradcam(model, pipe, imgs):
+    """The hand-written gradient must match autograd, and the map must match pytorch-grad-cam."""
+    from src.explain import gradcam
+
+    worst_grad, worst_map = 0.0, 1.0
+    for img01 in imgs:
+        x = torch.as_tensor(img01).permute(2, 0, 1)[None]
+        a = model.features(x).detach().requires_grad_(True)
+        logits = model.head(a)[0]
+        y = (torch.softmax(logits / model.T, 1) * model.urgent).sum()
+        (g_ref,) = torch.autograd.grad(y, a)
+        cam_ref = (g_ref.mean((2, 3), keepdim=True) * a).sum(1).detach()
+        with torch.no_grad():
+            cam = model(x)[2]
+        worst_grad = max(worst_grad, float((cam - cam_ref).abs().max() / (cam_ref.abs().max() + 1e-12)))
+        lib = gradcam(pipe.model, img01, pipe.T, torch.device("cpu"))
+        mine = upsample_cam(cam[0].numpy(), img01.shape[0])
+        worst_map = min(worst_map, float(np.corrcoef(mine.ravel(), lib.ravel())[0, 1]))
+    print(f"Grad-CAM: hand-written vs autograd max rel. error {worst_grad:.1e}; "
+          f"map vs pytorch-grad-cam min correlation {worst_map:.4f}")
+    assert worst_grad < 1e-3 and worst_map > 0.999
+
+
+def upsample_cam(cam, size):
+    """pytorch-grad-cam's post-processing: ReLU, min-max, bilinear resize, min-max (mirrored in Swift)."""
+    import cv2
+
+    cam = np.maximum(cam, 0)
+    cam = (cam - cam.min()) / (cam.max() - cam.min() + 1e-7)
+    cam = cv2.resize(np.float32(cam), (size, size))
+    return (cam - cam.min()) / (cam.max() - cam.min() + 1e-7)
 
 
 def export_coreml(pipe, imgs):
-    model = Wrapped(pipe.model.cpu().eval()).eval()
+    model = Wrapped(pipe.model.cpu().eval(), pipe.T).eval()
     example = torch.rand(1, 3, IMG_SIZE, IMG_SIZE)
+    with torch.no_grad():
+        x = torch.as_tensor(imgs[0]).permute(2, 0, 1)[None]
+        ref = pipe.model((x - model.mean) / model.std)
+        assert torch.allclose(model(x)[0], ref, atol=1e-3), "reparameterised head changed the logits"
+    check_gradcam(model, pipe, imgs)
     traced = torch.jit.trace(model, example)
     # "neuralnetwork" (.mlmodel) rather than an ML Program: coremltools has no native blob
     # writer for Python 3.14, which the ML Program format needs. The Swift tests check the
@@ -58,7 +146,7 @@ def export_coreml(pipe, imgs):
     ml = ct.convert(traced, inputs=[ct.TensorType("image", shape=example.shape)], convert_to="neuralnetwork")
     spec = ml.get_spec()
     names = [o.name for o in spec.description.output]
-    for old, new in zip(names, ["logits", "embedding"]):
+    for old, new in zip(names, ["logits", "embedding", "cam"]):
         ct.utils.rename_feature(spec, old, new)
     ml = ct.models.MLModel(spec)
     ml.short_description = "Skin lesion triage CNN (FastViT-T12, 384 px). Research demo, not a medical device."

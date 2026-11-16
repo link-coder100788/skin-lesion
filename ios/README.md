@@ -9,7 +9,7 @@ A SwiftUI iPhone app that runs the deployed triage pipeline fully on device: no 
 | OOD guard (kNN cosine + Mahalanobis) | Swift + Accelerate (`Pipeline/OODGuard.swift`) |
 | Metadata SHAP (exact, 4 groups) and XGBoost | Swift tree evaluator (`Pipeline/Fusion.swift`) |
 | Image SHAP | Swift Owen-value partition explainer, blur masker, 300 evaluations (`Pipeline/ImageShap.swift`) |
-| Grad-CAM | Precomputed for the bundled examples only: Core ML can't compute gradients on device |
+| Grad-CAM | Inside the Core ML model: Core ML can't backpropagate, so the gradient of p_urgent back to the last feature stage is written out by hand as forward ops (`ios/export_assets.py`, checked against autograd) |
 
 ## Build
 ```bash
@@ -25,7 +25,8 @@ open Veritas.xcodeproj                     # pick an iPhone simulator or your iP
 
 `VeritasTests/ParityTests.swift` checks the phone against the Python pipeline (`fixtures.json`) on the
 bundled examples. The checks are: Core ML vs PyTorch probabilities (±0.02) with the same triage and OOD
-decisions; XGBoost and metadata SHAP (±1e-4); the image SHAP map's sum (Owen efficiency) and its
-agreement with the Python SHAP map; and a non-skin photo flagged as "cannot assess".
+decisions; XGBoost and metadata SHAP (±1e-4); Grad-CAM against pytorch-grad-cam (correlation 1.000 on every
+example); the image SHAP map's sum (Owen efficiency) and its agreement with the Python SHAP map; and a
+non-skin photo flagged as "cannot assess".
 
-Debug builds accept `-demo <example id>` (e.g. `-demo cat`) and `-scrollEnd 1` as launch arguments, for screenshots.
+Debug builds accept `-demo <example id>` (e.g. `-demo cat`), `-scrollEnd 1` and `-gradcam 1` as launch arguments, for screenshots.

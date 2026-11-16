@@ -78,6 +78,19 @@ final class ParityTests: XCTestCase {
         XCTAssertGreaterThan(r, 0.5)
     }
 
+    /// The on-device Grad-CAM (hand-written gradient inside the Core ML model) should match
+    /// pytorch-grad-cam's map for the same image.
+    func testGradCAMMatchesPython() throws {
+        let p = Self.pipeline
+        for ex in Resources.json([Example].self, "examples", subdirectory: "examples") where ex.hasMaps {
+            let r = try p.run(image(ex.id), info: PatientInfo())
+            let ref = ex.map("cam")!
+            let corr = pearson(r.gradcam, ref)
+            print("Grad-CAM vs Python, \(ex.id): \(corr)")
+            XCTAssertGreaterThan(corr, 0.98, ex.id)
+        }
+    }
+
     func testOODGuardFlagsNonSkinPhoto() throws {
         let r = try Self.pipeline.run(image("cat"), info: PatientInfo())
         XCTAssertTrue(r.unlikeTraining)

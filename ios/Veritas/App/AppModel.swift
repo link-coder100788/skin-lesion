@@ -98,9 +98,11 @@ final class AppModel {
         }
         do {
             let r = try pipeline.run(image, info: a.info)
+            let camImage = Overlay.render(image, map: r.gradcam, signed: false)
             await MainActor.run {
                 a.prepared = image
                 a.result = r
+                a.camImage = camImage
                 a.phase = .done
             }
             var shap: [Float]
@@ -108,10 +110,6 @@ final class AppModel {
             if case .example(let ex) = a.selection, let m = ex.map("shap") {
                 shap = m
                 cached = true
-                if let cam = ex.map("cam") {
-                    let camImage = Overlay.render(image, map: cam, signed: false)
-                    await MainActor.run { a.camImage = camImage }
-                }
             } else {
                 shap = try pipeline.imageShap(image) { done, total in
                     Task { @MainActor in a.shapProgress = Double(done) / Double(total) }

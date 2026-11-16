@@ -22,6 +22,7 @@ struct TriageResult {
     let knn: Float
     let fusionRow: [Double]
     let metadata: MetadataExplanation
+    let gradcam: [Float]           // S x S map in [0, 1]
 }
 
 /// On-device version of src/triage.py `TriagePipeline`: CNN -> calibration -> triage level,
@@ -45,7 +46,7 @@ final class TriagePipeline: @unchecked Sendable {
     func pUrgent(_ probs: [Double]) -> Double { config.urgentIndices.reduce(0) { $0 + probs[$1] } }
 
     func run(_ image: PreparedImage, info: PatientInfo) throws -> TriageResult {
-        let (logits, emb) = try model.predict(image)
+        let (logits, emb, cam) = try model.predict(image)
         let cnn = softmax(logits, temperature: config.temperature)
         let row = fusionRow(cnnProbs: cnn, info: info, columns: background.columns)
         let probs = config.useFusion ? fusion.predict(row).map(Float.init) : cnn
@@ -55,7 +56,33 @@ final class TriagePipeline: @unchecked Sendable {
                                    urgentIdx: config.urgentIndices)
         return TriageResult(cnnProbs: cnn, probs: probs, pUrgent: p, tau: config.tau, urgent: p >= config.tau,
                             unlikeTraining: flags.flag, lowConfidence: (cnn.max() ?? 0) < config.mspThreshold,
-                            maha: flags.maha, knn: flags.knn, fusionRow: row, metadata: meta)
+                            maha: flags.maha, knn: flags.knn, fusionRow: row, metadata: meta,
+                            gradcam: Self.upsampleCAM(cam, size: config.imageSize))
+    }
+
+    /// pytorch-grad-cam's post-processing: ReLU, min-max, bilinear resize (OpenCV's
+    /// half-pixel convention) to the input size, min-max again.
+    static func upsampleCAM(_ cam: [Float], size: Int) -> [Float] {
+        let g = Int(Double(cam.count).squareRoot())
+        func minmax(_ v: [Float]) -> [Float] {
+            let lo = v.min() ?? 0, hi = v.max() ?? 0
+            return v.map { ($0 - lo) / (hi - lo + 1e-7) }
+        }
+        let small = minmax(cam.map { max(0, $0) })
+        let scale = Float(g) / Float(size)
+        var out = [Float](repeating: 0, count: size * size)
+        for y in 0..<size {
+            let sy = max(0, (Float(y) + 0.5) * scale - 0.5)
+            let y0 = min(Int(sy), g - 1), y1 = min(y0 + 1, g - 1), fy = sy - Float(y0)
+            for x in 0..<size {
+                let sx = max(0, (Float(x) + 0.5) * scale - 0.5)
+                let x0 = min(Int(sx), g - 1), x1 = min(x0 + 1, g - 1), fx = sx - Float(x0)
+                let top = small[y0 * g + x0] * (1 - fx) + small[y0 * g + x1] * fx
+                let bottom = small[y1 * g + x0] * (1 - fx) + small[y1 * g + x1] * fx
+                out[y * size + x] = top * (1 - fy) + bottom * fy
+            }
+        }
+        return minmax(out)
     }
 
     func imageShap(_ image: PreparedImage, progress: ((Int, Int) -> Void)? = nil) throws -> [Float] {

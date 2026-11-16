@@ -4,9 +4,19 @@ import SwiftUI
 struct ResultView: View {
     let analysis: Analysis
     @Environment(AppModel.self) private var model
-    @State private var map = MapKind.shap
+    @State private var map = MapKind.initial
 
-    enum MapKind: String, CaseIterable { case shap = "Image SHAP", gradcam = "Grad-CAM" }
+    enum MapKind: String, CaseIterable {
+        case shap = "Image SHAP", gradcam = "Grad-CAM"
+
+        static var initial: MapKind {
+            #if DEBUG
+            // `-gradcam 1` opens the Grad-CAM tab (for screenshots)
+            if ProcessInfo.processInfo.arguments.contains("-gradcam") { return .gradcam }
+            #endif
+            return .shap
+        }
+    }
 
     var body: some View {
         Group {
@@ -44,7 +54,7 @@ struct ResultView: View {
             } footer: {
                 Text(map == .shap
                      ? "Red regions pushed the score toward \u{201C}see a doctor\u{201D}, blue regions away from it. These maps change under small edits to the photo: read them as hints, not proof."
-                     : "Grad-CAM highlights where the network's last layers responded most (unsigned).")
+                     : "Grad-CAM: where the last feature layer, weighted by how much each feature raises the urgent score, responded most (unsigned). Computed on device from a gradient built into the Core ML model.")
             }
 
             Section {
@@ -91,18 +101,12 @@ struct ResultView: View {
                 .scaledToFit()
                 .clipShape(RoundedRectangle(cornerRadius: 12))
                 .frame(maxWidth: .infinity)
-        } else if map == .shap {
+        } else {
             VStack(spacing: 10) {
                 ProgressView(value: analysis.shapProgress)
                 Text("Computing image SHAP on device…").font(.footnote).foregroundStyle(.secondary)
             }
             .frame(maxWidth: .infinity, minHeight: 120)
-        } else {
-            ContentUnavailableView {
-                Label("Examples Only", systemImage: "square.stack.3d.down.right")
-            } description: {
-                Text("Grad-CAM needs gradients, which Core ML can't compute on the phone. It was precomputed for the bundled examples.")
-            }
         }
     }
 }
